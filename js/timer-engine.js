@@ -1,7 +1,8 @@
 /**
  * 高精度タイマーエンジン (TimerEngine)
- * performance.now() と Date.now() による絶対時間差分計算方式を採用し、
- * iOSのバックグラウンド移行や画面スリープからの復帰時にも正確な経過時間を維持します。
+ * performance.now() と Date.now() による絶対時間差分計算方式を採用。
+ * サイクルタイム（インターバル）機能、自動リセット＆リスタート、
+ * バックグラウンド復帰時の補正に対応。
  */
 
 export class TimerEngine {
@@ -9,10 +10,18 @@ export class TimerEngine {
     this.state = 'IDLE'; // 'IDLE' | 'RUNNING' | 'PAUSED'
     this.startTime = 0;       // performance.now() 基準
     this.startDate = 0;       // Date.now() 基準 (バックグラウンド補正用)
-    this.pausedElapsed = 0;   // 一時停止時の蓄積時間(ms)
+    this.pausedElapsed = 0;   // 現在サイクル内の一時停止蓄積時間(ms)
+    
+    // サイクル機能関連
+    this.cycleTimeMs = 0;         // サイクルタイム（0ならサイクル無効）
+    this.cycleNumber = 1;         // 現在のサイクル本数 (1本目, 2本目...)
+    this.pastCyclesTotalMs = 0;   // 過去サイクルの合計時間
+    this.lastWarnSecond = -1;     // カウントダウン予告音の重複防止
+
     this.animationFrameId = null;
     this.intervalId = null;
     this.listeners = new Set();
+    this.cycleListeners = new Set();
     
     // Page Visibility API のイベント登録（バックグラウンド復帰時の自動再同期）
     this._handleVisibilityChange = this._handleVisibilityChange.bind(this);
@@ -23,7 +32,7 @@ export class TimerEngine {
 
   /**
    * タイマーリスナーを登録
-   * @param {Function} callback (elapsedMs, state) => void
+   * @param {Function} callback (cycleElapsedMs, state, totalElapsedMs, cycleNumber) => void
    */
   subscribe(callback) {
     this.listeners.add(callback);
@@ -31,13 +40,38 @@ export class TimerEngine {
   }
 
   /**
-   * 全リスナーへ現在の経過時間を通知
+   * サイクル切り替えイベントリスナーを登録
+   * @param {Function} callback (newCycleNumber) => void
+   */
+  onCycleChange(callback) {
+    this.cycleListeners.add(callback);
+    return () => this.cycleListeners.delete(callback);
+  }
+
+  /**
+   * サイクルタイムの設定 (ms)
+   * @param {number} ms サイクル秒数のミリ秒 (0ならOFF)
+   */
+  setCycleTime(ms) {
+    this.cycleTimeMs = Math.max(0, Number(ms) || 0);
+  }
+
+  /**
+   * 全リスナーへ通知
    */
   _notify() {
-    const elapsed = this.getElapsedTime();
+    const cycleElapsed = this.getElapsedTime();
+    const totalElapsed = this.getTotalElapsedTime();
+
+    // サイクル到達の自動判定
+    if (this.state === 'RUNNING' && this.cycleTimeMs > 0 && cycleElapsed >= this.cycleTimeMs) {
+      this.advanceToNextCycle();
+      return;
+    }
+
     for (const callback of this.listeners) {
       try {
-        callback(elapsed, this.state);
+        callback(cycleElapsed, this.state, totalElapsed, this.cycleNumber);
       } catch (err) {
         console.error('Timer listener error:', err);
       }
@@ -45,7 +79,30 @@ export class TimerEngine {
   }
 
   /**
-   * 現在の正確な総経過時間(ミリ秒)を取得
+   * 次のサイクルへ進む（タイマーを0にリセットして即座に再開）
+   */
+  advanceToNextCycle() {
+    this.pastCyclesTotalMs += (this.cycleTimeMs > 0 ? this.cycleTimeMs : this.getElapsedTime());
+    this.cycleNumber += 1;
+    this.startTime = performance.now();
+    this.startDate = Date.now();
+    this.pausedElapsed = 0;
+    this.lastWarnSecond = -1;
+
+    // サイクル変更リスナーへ通知
+    for (const cb of this.cycleListeners) {
+      try {
+        cb(this.cycleNumber);
+      } catch (e) {
+        console.error('Cycle listener error:', e);
+      }
+    }
+
+    this._notify();
+  }
+
+  /**
+   * 現在のサイクル内での経過時間(ミリ秒)を取得
    */
   getElapsedTime() {
     if (this.state === 'IDLE') {
@@ -54,17 +111,21 @@ export class TimerEngine {
     if (this.state === 'PAUSED') {
       return this.pausedElapsed;
     }
-    // RUNNING時: 開始時からの差分 + 過去の一時停止蓄積時間
     const nowPerf = performance.now();
     const elapsedPerf = nowPerf - this.startTime;
 
-    // Date.now() によるバックグラウンド長期間経過の補正検証
     const nowDate = Date.now();
     const elapsedDate = nowDate - this.startDate;
 
-    // performance.now() のサスペンドによるズレが発生した場合、Date.now() を優先
     const effectiveElapsed = Math.max(elapsedPerf, elapsedDate);
     return this.pausedElapsed + effectiveElapsed;
+  }
+
+  /**
+   * 過去サイクルを含めた総経過時間(ミリ秒)を取得
+   */
+  getTotalElapsedTime() {
+    return this.pastCyclesTotalMs + this.getElapsedTime();
   }
 
   /**
@@ -94,7 +155,7 @@ export class TimerEngine {
   }
 
   /**
-   * タイマーリセット
+   * タイマーリセット (完全初期化)
    */
   reset() {
     this._stopLoop();
@@ -102,6 +163,9 @@ export class TimerEngine {
     this.startTime = 0;
     this.startDate = 0;
     this.pausedElapsed = 0;
+    this.cycleNumber = 1;
+    this.pastCyclesTotalMs = 0;
+    this.lastWarnSecond = -1;
     this._notify();
   }
 
@@ -119,7 +183,6 @@ export class TimerEngine {
     };
     this.animationFrameId = requestAnimationFrame(loop);
 
-    // requestAnimationFrame がスロットリングされるバックグラウンド用フォールバック
     this.intervalId = setInterval(() => {
       if (this.state === 'RUNNING') {
         this._notify();
@@ -142,20 +205,16 @@ export class TimerEngine {
   }
 
   /**
-   * バックグラウンドからフォアグラウンドへ復帰時の処理
+   * バックグラウンドから復帰時
    */
   _handleVisibilityChange() {
     if (document.visibilityState === 'visible' && this.state === 'RUNNING') {
-      // 復帰時に即座に正確な時間を通知して再描画
       this._notify();
     }
   }
 
   /**
    * ミリ秒を 1/100 秒単位の文字列に整形
-   * @param {number} ms ミリ秒
-   * @param {boolean} forceHours 1時間未満でも時間を含めるか
-   * @returns {string} 例: "01:23.45" または "1:02:03.45"
    */
   static formatTime(ms, forceHours = false) {
     if (ms < 0) ms = 0;
@@ -178,12 +237,22 @@ export class TimerEngine {
 
   /**
    * カウントダウン用の残り秒数フォーマット
-   * @param {number} remainingMs 残りミリ秒
-   * @returns {string} 例: "-00:04.25"
    */
   static formatCountdown(remainingMs) {
     const ms = Math.max(0, remainingMs);
     const formatted = TimerEngine.formatTime(ms);
     return `-${formatted}`;
+  }
+
+  /**
+   * サイクルタイムの表示用フォーマット（例: "01:00", "00:45"）
+   */
+  static formatCycleLabel(ms) {
+    if (!ms || ms <= 0) return 'OFF';
+    const totalSec = Math.round(ms / 1000);
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(min)}:${pad(sec)}`;
   }
 }

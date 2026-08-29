@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>AquaTimer Pro - 前者基準オフセットロジック検証テスト</title>
+  <title>AquaTimer Pro - サイクル次本LAPタイム計算検証テスト</title>
   <style>
     body { font-family: monospace; background: #060d1a; color: #fff; padding: 20px; }
     .pass { color: #10b981; margin: 4px 0; }
@@ -11,13 +11,11 @@
   </style>
 </head>
 <body>
-  <h1>AquaTimer Pro 前者基準遅延ロジックテスト結果</h1>
+  <h1>AquaTimer Pro サイクル次本LAPタイム計算テスト結果</h1>
   <div id="results"></div>
 
   <script type="module">
-    import { TimerEngine } from '../js/timer-engine.js';
     import { LaneManager } from '../js/lane-manager.js';
-    import { Exporter } from '../js/exporter.js';
 
     const results = document.getElementById('results');
     function assert(desc, condition) {
@@ -32,51 +30,45 @@
       results.appendChild(p);
     }
 
-    // 1. LaneManager 前者基準遅延（累積オフセット）テスト
+    // 1. サイクル練習での本数別LAPタイム計算テスト
     const lm = new LaneManager();
-    // 第1レーン:
-    // 選手1 (offset 0s) -> スタート: 0s
-    // 選手2 (offset 5s) -> 前者(選手1: 0s)から+5s -> スタート: 5s
-    // 選手3 (offset 5s) -> 前者(選手2: 5s)から+5s -> スタート: 10s
-    // 選手4 (offset 10s)-> 前者(選手3: 10s)から+10s -> スタート: 20s
     const lane1 = lm.lanes[0];
-    const s3 = lm.addSwimmer(lane1.id, '選手 A3', 5);
-    const s4 = lm.addSwimmer(lane1.id, '選手 A4', 10);
-
-    assert('選手1の絶対オフセットは0ms', lm.getSwimmerAbsoluteOffsetMs(lane1.id, lane1.swimmers[0].id) === 0);
-    assert('選手2の絶対オフセットは5000ms', lm.getSwimmerAbsoluteOffsetMs(lane1.id, lane1.swimmers[1].id) === 5000);
-    assert('選手3の絶対オフセットは10000ms (5s+5s)', lm.getSwimmerAbsoluteOffsetMs(lane1.id, s3.id) === 10000);
-    assert('選手4の絶対オフセットは20000ms (10s+10s)', lm.getSwimmerAbsoluteOffsetMs(lane1.id, s4.id) === 20000);
+    const s1 = lane1.swimmers[0];
 
     // スタート
-    lm.onMainStart(0);
-    assert('メイン0秒時 選手1(0s)はRUNNING', lane1.swimmers[0].state === 'RUNNING');
-    assert('メイン0秒時 選手2(5s)はSTANDBY', lane1.swimmers[1].state === 'STANDBY');
-    assert('メイン0秒時 選手3(10s)はSTANDBY', lane1.swimmers[2].state === 'STANDBY');
-    assert('メイン0秒時 選手4(20s)はSTANDBY', lane1.swimmers[3].state === 'STANDBY');
+    lm.onMainStart();
 
-    // 5秒経過
-    const started5s = lm.update(5000, 'RUNNING');
-    assert('5秒経過で選手2が自動スタート', lane1.swimmers[1].state === 'RUNNING');
-    assert('5秒経過時 選手3はまだSTANDBY', lane1.swimmers[2].state === 'STANDBY');
+    // 1本目: 30.00秒でLAP打刻
+    s1.currentElapsed = 30000;
+    const lap1 = lm.recordSwimmerLap(lane1.id, s1.id);
+    assert('1本目のLap1: 区間30秒(30000ms)', lap1.lapTime === 30000);
+    assert('1本目のLap1: スプリット30秒(30000ms)', lap1.splitTime === 30000);
+    assert('1本目のLap1: cycleNumberは1', lap1.cycleNumber === 1);
 
-    // 10秒経過
-    const started10s = lm.update(10000, 'RUNNING');
-    assert('10秒経過で選手3が自動スタート', lane1.swimmers[2].state === 'RUNNING');
-    assert('10秒経過時 選手4はまだSTANDBY', lane1.swimmers[3].state === 'STANDBY');
+    // サイクルリセット (2本目へ)
+    // 60秒到達で2本目へ自動リセット
+    s1.currentElapsed = 60000;
+    lm.update(60000); // サイクルリセット発火
+    assert('2本目スタート時 タイマーは0秒', s1.currentElapsed === 0);
+    assert('2本目スタート時 cycleNumberは2', s1.cycleNumber === 2);
 
-    // 20秒経過
-    const started20s = lm.update(20000, 'RUNNING');
-    assert('20秒経過で選手4が自動スタート', lane1.swimmers[3].state === 'RUNNING');
+    // 2本目: 31.50秒でLAP打刻！
+    s1.currentElapsed = 31500;
+    const lap2 = lm.recordSwimmerLap(lane1.id, s1.id);
+    assert('重要: 2本目のLap2の区間タイムは正確に31.5秒(31500ms)', lap2.lapTime === 31500);
+    assert('2本目のLap2のスプリットタイムは31.5秒(31500ms)', lap2.splitTime === 31500);
+    assert('2本目のLap2のcycleNumberは2', lap2.cycleNumber === 2);
 
-    // 25秒経過時での個別経過時間
-    lm.update(25000, 'RUNNING');
-    assert('全体25秒時 選手1の経過時間は25秒(25000ms)', lane1.swimmers[0].currentElapsed === 25000);
-    assert('全体25秒時 選手2の経過時間は20秒(20000ms)', lane1.swimmers[1].currentElapsed === 20000);
-    assert('全体25秒時 選手3の経過時間は15秒(15000ms)', lane1.swimmers[2].currentElapsed === 15000);
-    assert('全体25秒時 選手4の経過時間は5秒(5000ms)', lane1.swimmers[3].currentElapsed === 5000);
+    // 2本目の中でさらに100mゴール時(1分05秒)に再度LAP打刻
+    s1.currentElapsed = 65000;
+    const lap3 = lm.recordSwimmerLap(lane1.id, s1.id);
+    assert('2本目内の2回目LAP: 区間タイムは33.5秒(65s - 31.5s = 33500ms)', lap3.lapTime === 33500);
+    assert('2本目内の2回目LAP: スプリットタイムは65秒(65000ms)', lap3.splitTime === 65000);
 
-    console.log('All offset logic tests passed.');
+    // 総ラップ数は3件
+    assert('総ラップ数は3件保持されている', s1.laps.length === 3);
+
+    console.log('All cycle lap tests passed.');
   </script>
 </body>
 </html>

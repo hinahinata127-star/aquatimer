@@ -41,13 +41,12 @@ export class Exporter {
         }
 
         if (swimmer.laps && swimmer.laps.length > 0) {
-          lines.push('    No. | 区間タイム (Lap) | 累積タイム (Split) | 全体タイム');
+          lines.push('    No. | 区間タイム (Lap) | 累積タイム (Split)');
           swimmer.laps.forEach(l => {
             const numStr = String(l.lapNumber).padStart(3, ' ');
             const lapStr = TimerEngine.formatTime(l.lapTime).padStart(8, ' ');
             const splitStr = TimerEngine.formatTime(l.splitTime).padStart(8, ' ');
-            const overallStr = TimerEngine.formatTime(l.overallTime).padStart(8, ' ');
-            lines.push(`    #${numStr} | ${lapStr} | ${splitStr} | ${overallStr}`);
+            lines.push(`    #${numStr} | ${lapStr} | ${splitStr}`);
           });
         } else {
           lines.push('    (ラップ記録なし)');
@@ -76,7 +75,6 @@ export class Exporter {
       'Lap番号', 
       '区間タイム(Lap)', 
       '累積タイム(Split)', 
-      '全体タイム', 
       '区間ミリ秒', 
       '累積ミリ秒'
     ]);
@@ -95,7 +93,6 @@ export class Exporter {
               l.lapNumber,
               TimerEngine.formatTime(l.lapTime),
               TimerEngine.formatTime(l.splitTime),
-              TimerEngine.formatTime(l.overallTime),
               l.lapTime,
               l.splitTime
             ]);
@@ -109,7 +106,6 @@ export class Exporter {
             swimmer.offsetSeconds,
             '-',
             '-',
-            TimerEngine.formatTime(swimmer.finalTime),
             TimerEngine.formatTime(swimmer.finalTime),
             0,
             swimmer.finalTime

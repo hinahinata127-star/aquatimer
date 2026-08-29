@@ -21,9 +21,9 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <!-- スタイルシート (キャッシュバスター付与) -->
-  <link rel="stylesheet" href="css/style.css?v=2.5">
-  <link rel="stylesheet" href="css/timer.css?v=2.5">
-  <link rel="stylesheet" href="css/history.css?v=2.5">
+  <link rel="stylesheet" href="css/style.css?v=3.0">
+  <link rel="stylesheet" href="css/timer.css?v=3.0">
+  <link rel="stylesheet" href="css/history.css?v=3.0">
 </head>
 <body>
   <div id="app-container">
@@ -73,15 +73,8 @@
       <!-- ================= 画面1: メイン計測画面 (縦割りレイアウト) ================= -->
       <section id="view-timer" class="view-section active">
         
-        <!-- 上部固定 メインタイマー & コントロール -->
+        <!-- 上部固定 一括コントロール ＆ サイクル設定 (スリム化) -->
         <div class="timer-header-panel">
-          <div class="main-clock-wrapper">
-            <span class="clock-label">TOTAL TIME (全体経過)</span>
-            <div id="main-timer-display" class="main-digital-clock">
-              <span id="main-time-text">00:00</span><span class="centis" id="main-time-centis">.00</span>
-            </div>
-          </div>
-
           <!-- 一括操作ボタングループ -->
           <div class="main-controls-row">
             <!-- スタート / ストップ トグルボタン -->
@@ -101,12 +94,25 @@
             </button>
 
             <!-- リセットボタン -->
-            <button id="btn-main-reset" class="main-btn main-btn-reset" aria-label="リセット">
+            <button id="btn-main-reset" class="main-btn main-btn-reset" aria-label="全リセット">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
               </svg>
               <span>リセット</span>
             </button>
+
+            <!-- サイクル設定ボタン (コンパクト配置) -->
+            <button id="btn-open-cycle-modal" class="cycle-pill-btn" title="サイクルタイム設定">
+              <span class="cycle-icon">⏱️</span>
+              <span id="cycle-label-text">サイクル: OFF</span>
+            </button>
+          </div>
+
+          <!-- サイクル進行中バー -->
+          <div id="cycle-progress-wrap" class="cycle-progress-wrap" style="display:none;">
+            <span id="cycle-round-badge" class="cycle-round-badge">1本目</span>
+            <span id="cycle-remain-text" class="cycle-remain-text">次まで --:--</span>
+            <button id="btn-next-cycle" class="btn-next-cycle" title="今すぐ次サイクルへリセットスタート">次本 ⏩</button>
           </div>
         </div>
 
@@ -174,6 +180,60 @@
 
     <!-- トースト通知コンテナ -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- ================= モーダル0: サイクルタイム設定 ================= -->
+    <div id="modal-cycle-settings" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title">⏱️ サイクルタイム (インターバル) 設定</h3>
+          <button class="modal-close" data-close="modal-cycle-settings">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:0.82rem; color:var(--text-secondary);">
+            サイクルタイムを設定すると、指定時間ごとにタイマーが自動リセットして次の本数がスタートします。<br>
+            <strong style="color:var(--accent-green);">※ 計測したラップ・スプリット記録は消えずにそのまま保持されます。</strong>
+          </p>
+
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">プリセットから選択</label>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px;">
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="0" style="padding:6px; font-size:0.8rem;">OFF</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="30" style="padding:6px; font-size:0.8rem;">30秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="40" style="padding:6px; font-size:0.8rem;">40秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="45" style="padding:6px; font-size:0.8rem;">45秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="50" style="padding:6px; font-size:0.8rem;">50秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="55" style="padding:6px; font-size:0.8rem;">55秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="60" style="padding:6px; font-size:0.8rem;">1分00秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="65" style="padding:6px; font-size:0.8rem;">1分05秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="70" style="padding:6px; font-size:0.8rem;">1分10秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="75" style="padding:6px; font-size:0.8rem;">1分15秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="80" style="padding:6px; font-size:0.8rem;">1分20秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="90" style="padding:6px; font-size:0.8rem;">1分30秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="105" style="padding:6px; font-size:0.8rem;">1分45秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="120" style="padding:6px; font-size:0.8rem;">2分00秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="150" style="padding:6px; font-size:0.8rem;">2分30秒</button>
+              <button type="button" class="btn btn-secondary cycle-preset-btn" data-seconds="180" style="padding:6px; font-size:0.8rem;">3分00秒</button>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+            <label style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">カスタム時間指定 (分 / 秒)</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="number" id="input-cycle-min" min="0" max="59" placeholder="0" 
+                style="flex:1; padding:8px 10px; background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle); border-radius:8px; color:#fff; font-size:1.1rem; font-family:var(--font-mono); text-align:center;">
+              <span style="font-weight:700; color:var(--text-secondary);">分</span>
+              <input type="number" id="input-cycle-sec" min="0" max="59" placeholder="0" 
+                style="flex:1; padding:8px 10px; background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle); border-radius:8px; color:#fff; font-size:1.1rem; font-family:var(--font-mono); text-align:center;">
+              <span style="font-weight:700; color:var(--text-secondary);">秒</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close="modal-cycle-settings">キャンセル</button>
+          <button id="btn-save-cycle" class="btn btn-primary">サイクルを設定</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ================= モーダル1: スイマー（選手）追加/編集 ================= -->
     <div id="modal-swimmer-edit" class="modal-backdrop">
@@ -324,6 +384,6 @@
   </div>
 
   <!-- メインスクリプト -->
-  <script type="module" src="js/app.js?v=2.5"></script>
+  <script type="module" src="js/app.js?v=3.0"></script>
 </body>
 </html>

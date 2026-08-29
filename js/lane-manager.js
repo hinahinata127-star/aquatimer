@@ -1,89 +1,106 @@
 /**
- * レーン＆スイマー管理マネージャー (LaneManager)
- * 「レーン」の中に「複数人のスイマー（泳者）」が所属する階層データ構造を管理し、
- * 時間差自動スタート判定、個別/レーン別/全体ラップ・スプリット計算を担当します。
+ * レーン ＆ スイマー階層管理マネージャー (LaneManager)
+ * 各スイマーが完全に独立した個別タイマーエンジンとして駆動するアーキテクチャ。
+ * 個別計測・一斉スタート・時間差スタート・サイクルリセット・ラップ記録に対応。
  */
-
-export const LANE_COLORS = [
-  { name: 'シアン', bg: '#00f0ff', text: '#05131e', border: '#00c4d4' },
-  { name: 'エメラルド', bg: '#10b981', text: '#022519', border: '#059669' },
-  { name: 'アンバー', bg: '#f59e0b', text: '#291800', border: '#d97706' },
-  { name: 'ローズ', bg: '#f43f5e', text: '#2a050e', border: '#e11d48' },
-  { name: 'パープル', bg: '#a855f7', text: '#1b072e', border: '#9333ea' },
-  { name: 'ブルー', bg: '#3b82f6', text: '#051633', border: '#2563eb' },
-  { name: 'オレンジ', bg: '#f97316', text: '#2f1001', border: '#ea580c' },
-  { name: 'ティール', bg: '#14b8a6', text: '#03231f', border: '#0d9488' }
-];
 
 export class LaneManager {
   constructor() {
     this.lanes = [];
     this.justStartedSwimmers = new Set();
-    this.initializeDefaultStructure();
+    this.initDefaultLanes();
   }
 
   /**
-   * 初期デフォルト構造の作成 (2レーン × 各2名)
+   * 初期デフォルトレーンの作成 (2レーン × 2名)
    */
-  initializeDefaultStructure() {
-    const lane1 = this.createLaneObject(1, '第1レーン', 0);
-    lane1.swimmers = [
-      this.createSwimmerObject(lane1.id, 1, '選手 A', 0),
-      this.createSwimmerObject(lane1.id, 2, '選手 B', 5)
+  initDefaultLanes() {
+    const laneColors = [
+      { bg: 'linear-gradient(135deg, #00f0ff, #0284c7)', text: '#000000' },
+      { bg: 'linear-gradient(135deg, #10b981, #059669)', text: '#000000' },
+      { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', text: '#000000' },
+      { bg: 'linear-gradient(135deg, #ec4899, #be185d)', text: '#ffffff' }
     ];
 
-    const lane2 = this.createLaneObject(2, '第2レーン', 1);
-    lane2.swimmers = [
-      this.createSwimmerObject(lane2.id, 1, '選手 C', 0),
-      this.createSwimmerObject(lane2.id, 2, '選手 D', 5)
+    this.lanes = [
+      {
+        id: 'lane_1',
+        laneNumber: 1,
+        name: '第1レーン',
+        color: laneColors[0],
+        swimmers: [
+          this._createSwimmer(1, '選手 A1', 0),
+          this._createSwimmer(2, '選手 A2', 5)
+        ]
+      },
+      {
+        id: 'lane_2',
+        laneNumber: 2,
+        name: '第2レーン',
+        color: laneColors[1],
+        swimmers: [
+          this._createSwimmer(1, '選手 B1', 0),
+          this._createSwimmer(2, '選手 B2', 5)
+        ]
+      }
     ];
-
-    this.lanes = [lane1, lane2];
   }
 
   /**
-   * レーンオブジェクト生成
+   * スイマーオブジェクトの生成（個別タイマー内蔵）
    */
-  createLaneObject(laneNumber, name = '', colorIndex = 0) {
-    const color = LANE_COLORS[(laneNumber - 1) % LANE_COLORS.length];
+  _createSwimmer(order, name, offsetSeconds = 0) {
     return {
-      id: `lane_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      laneNumber: Number(laneNumber),
-      name: name || `第${laneNumber}レーン`,
-      color: color,
-      swimmers: []
-    };
-  }
-
-  /**
-   * スイマー（泳者）オブジェクト生成
-   */
-  createSwimmerObject(laneId, order, name = '', offsetSeconds = 0) {
-    return {
-      id: `swimmer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      laneId: laneId,
-      order: Number(order),
-      name: name || `泳者 ${order}`,
-      offsetSeconds: Math.max(0, Number(offsetSeconds) || 0),
+      id: 'swimmer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      name: name || `選手 ${order}`,
+      order,
+      offsetSeconds: Number(offsetSeconds) || 0,
       state: 'IDLE', // 'IDLE' | 'STANDBY' | 'RUNNING' | 'STOPPED'
+      
+      // 個別タイマー計測プロパティ
+      startTimePerf: 0,
+      startDate: 0,
+      pausedElapsed: 0,
       currentElapsed: 0,
-      startedAtMainElapsed: 0,
-      stoppedAtElapsed: 0,
-      laps: [], // { lapNumber, lapTime, splitTime, overallTime, recordedAt }
+      cycleNumber: 1, // 現在の本数
+      
+      // スタンバイ用
+      standbyStartTimePerf: 0,
+      standbyDurationMs: 0,
+      
+      laps: [],
       isExpanded: false
     };
   }
 
   /**
-   * レーンの追加
+   * 新規レーンの追加
    */
-  addLane(name = '') {
+  addLane(name = null) {
     const laneNumber = this.lanes.length + 1;
-    const lane = this.createLaneObject(laneNumber, name, laneNumber - 1);
-    // デフォルトで1名追加
-    lane.swimmers.push(this.createSwimmerObject(lane.id, 1, `選手 ${laneNumber}-1`, 0));
-    this.lanes.push(lane);
-    return lane;
+    const laneColors = [
+      { bg: 'linear-gradient(135deg, #00f0ff, #0284c7)', text: '#000000' },
+      { bg: 'linear-gradient(135deg, #10b981, #059669)', text: '#000000' },
+      { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', text: '#000000' },
+      { bg: 'linear-gradient(135deg, #ec4899, #be185d)', text: '#ffffff' },
+      { bg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', text: '#ffffff' },
+      { bg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', text: '#ffffff' }
+    ];
+    const color = laneColors[(laneNumber - 1) % laneColors.length];
+
+    const newLane = {
+      id: 'lane_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      laneNumber,
+      name: name || `第${laneNumber}レーン`,
+      color,
+      swimmers: [
+        this._createSwimmer(1, `選手 ${laneNumber}-1`, 0),
+        this._createSwimmer(2, `選手 ${laneNumber}-2`, 5)
+      ]
+    };
+
+    this.lanes.push(newLane);
+    return newLane;
   }
 
   /**
@@ -93,12 +110,14 @@ export class LaneManager {
     this.lanes = this.lanes.filter(l => l.id !== laneId);
     this.lanes.forEach((lane, idx) => {
       lane.laneNumber = idx + 1;
-      lane.color = LANE_COLORS[idx % LANE_COLORS.length];
+      if (lane.name.startsWith('第') && lane.name.endsWith('レーン')) {
+        lane.name = `第${idx + 1}レーン`;
+      }
     });
   }
 
   /**
-   * レーン情報の更新
+   * レーン設定の更新
    */
   updateLane(laneId, updates) {
     const lane = this.lanes.find(l => l.id === laneId);
@@ -108,20 +127,19 @@ export class LaneManager {
   }
 
   /**
-   * 指定レーンにスイマーを追加
+   * レーン内へのスイマー追加
    */
-  addSwimmer(laneId, name = '', offsetSeconds = undefined) {
+  addSwimmer(laneId, name = null, offsetSeconds = null) {
     const lane = this.lanes.find(l => l.id === laneId);
     if (!lane) return null;
 
     const order = lane.swimmers.length + 1;
-    const defaultOffset = order === 1 ? 0 : 5; // 1人目は0秒、2人目以降は前者から+5秒
-    const swimmer = this.createSwimmerObject(
-      lane.id, 
-      order, 
-      name || `選手 ${lane.laneNumber}-${order}`, 
-      offsetSeconds !== undefined ? offsetSeconds : defaultOffset
-    );
+    const defaultOffset = (order === 1) ? 0 : 5;
+    const offset = (offsetSeconds !== null && offsetSeconds !== undefined) 
+      ? Number(offsetSeconds) 
+      : defaultOffset;
+
+    const swimmer = this._createSwimmer(order, name || `選手 ${lane.laneNumber}-${order}`, offset);
     lane.swimmers.push(swimmer);
     return swimmer;
   }
@@ -132,6 +150,7 @@ export class LaneManager {
   removeSwimmer(laneId, swimmerId) {
     const lane = this.lanes.find(l => l.id === laneId);
     if (!lane) return;
+
     lane.swimmers = lane.swimmers.filter(s => s.id !== swimmerId);
     lane.swimmers.forEach((s, idx) => {
       s.order = idx + 1;
@@ -139,7 +158,7 @@ export class LaneManager {
   }
 
   /**
-   * スイマー情報の更新
+   * スイマー設定の更新
    */
   updateSwimmer(laneId, swimmerId, updates) {
     const lane = this.lanes.find(l => l.id === laneId);
@@ -147,7 +166,7 @@ export class LaneManager {
     const swimmer = lane.swimmers.find(s => s.id === swimmerId);
     if (!swimmer) return null;
 
-    if (updates.name !== undefined) swimmer.name = updates.name.trim() || `泳者 ${swimmer.order}`;
+    if (updates.name !== undefined) swimmer.name = updates.name.trim() || `選手 ${swimmer.order}`;
     if (updates.offsetSeconds !== undefined) {
       swimmer.offsetSeconds = Math.max(0, parseFloat(updates.offsetSeconds) || 0);
     }
@@ -167,8 +186,7 @@ export class LaneManager {
   }
 
   /**
-   * スイマーの絶対スタート時刻（全体経過時間基準のミリ秒）を取得
-   * レーン内の先頭選手から順に遅延秒数を加算（前者からの+秒数）
+   * 前者基準の累積スタート遅延（ミリ秒）を取得
    */
   getSwimmerAbsoluteOffsetMs(laneId, swimmerId) {
     const lane = this.lanes.find(l => l.id === laneId);
@@ -184,75 +202,114 @@ export class LaneManager {
   }
 
   /**
-   * メインタイマー開始時の全スイマー初期化
-   * 各選手のスタート時刻 = 前者のスタート時刻 + 当該選手の遅延秒数
+   * スイマーの個別正確経過時間 (ms) の計算
    */
-  onMainStart(mainElapsedMs) {
+  _calculateSwimmerElapsed(swimmer) {
+    if (swimmer.state !== 'RUNNING') return swimmer.currentElapsed;
+    const nowPerf = performance.now();
+    const elapsedPerf = nowPerf - swimmer.startTimePerf;
+
+    const nowDate = Date.now();
+    const elapsedDate = nowDate - swimmer.startDate;
+
+    const effective = Math.max(elapsedPerf, elapsedDate);
+    return swimmer.pausedElapsed + effective;
+  }
+
+  /**
+   * 全選手一斉スタート
+   * 先頭選手は即座に個別RUNNING、後者は累積時間差で個別STANDBY開始
+   */
+  onMainStart() {
+    const nowPerf = performance.now();
+    const nowDate = Date.now();
+
     this.lanes.forEach(lane => {
       let accumulatedOffsetMs = 0;
       lane.swimmers.forEach(swimmer => {
         accumulatedOffsetMs += swimmer.offsetSeconds * 1000;
-        if (swimmer.state === 'IDLE') {
-          if (accumulatedOffsetMs <= mainElapsedMs) {
-            swimmer.state = 'RUNNING';
-            swimmer.startedAtMainElapsed = accumulatedOffsetMs;
-            swimmer.currentElapsed = mainElapsedMs - accumulatedOffsetMs;
-            this.justStartedSwimmers.add(swimmer.id);
-          } else {
-            swimmer.state = 'STANDBY';
-            swimmer.startedAtMainElapsed = accumulatedOffsetMs;
-            swimmer.currentElapsed = 0;
-          }
-          swimmer.laps = [];
+
+        if (accumulatedOffsetMs === 0) {
+          // 即座に個別スタート
+          swimmer.state = 'RUNNING';
+          swimmer.startTimePerf = nowPerf;
+          swimmer.startDate = nowDate;
+          swimmer.pausedElapsed = 0;
+          swimmer.currentElapsed = 0;
+          this.justStartedSwimmers.add(swimmer.id);
+        } else {
+          // 個別スタンバイ開始
+          swimmer.state = 'STANDBY';
+          swimmer.standbyStartTimePerf = nowPerf;
+          swimmer.standbyDurationMs = accumulatedOffsetMs;
+          swimmer.pausedElapsed = 0;
+          swimmer.currentElapsed = 0;
         }
+        swimmer.laps = [];
       });
     });
   }
 
   /**
-   * 毎フレームの更新処理（前者からの累積時間差自動スタート判定と経過時間更新）
-   * @returns {Array<string>} 新たに自動スタートしたスイマーIDの配列
+   * 毎フレームの更新処理（各スイマーが独立して時間を刻み、個別サイクル到達でリセット）
+   * @param {number} cycleTimeMs 設定されているサイクル時間 (ms, 0なら無効)
+   * @returns {{ newlyStarted: Array<string>, newlyCycled: Array<Object> }}
    */
-  update(mainElapsedMs, mainState) {
+  update(cycleTimeMs = 0) {
+    const nowPerf = performance.now();
+    const nowDate = Date.now();
     const newlyStarted = [];
+    const newlyCycled = [];
 
     this.lanes.forEach(lane => {
-      let accumulatedOffsetMs = 0;
       lane.swimmers.forEach(swimmer => {
-        accumulatedOffsetMs += swimmer.offsetSeconds * 1000;
+        if (swimmer.state === 'RUNNING') {
+          swimmer.currentElapsed = this._calculateSwimmerElapsed(swimmer);
 
-        if (mainState === 'IDLE') {
-          swimmer.currentElapsed = 0;
-          return;
-        }
-
-        if (swimmer.state === 'STANDBY') {
-          if (mainElapsedMs >= accumulatedOffsetMs) {
-            // オフセット到達！自動スタート
+          // サイクル設定がある場合、選手個別の経過時間がサイクル時間に達したら次本へ個別リセット！
+          if (cycleTimeMs > 0 && swimmer.currentElapsed >= cycleTimeMs) {
+            swimmer.cycleNumber = (swimmer.cycleNumber || 1) + 1;
+            swimmer.startTimePerf = nowPerf;
+            swimmer.startDate = nowDate;
+            swimmer.pausedElapsed = 0;
+            swimmer.currentElapsed = 0;
+            newlyCycled.push({ lane, swimmer, cycleNumber: swimmer.cycleNumber });
+            this.justStartedSwimmers.add(swimmer.id);
+          }
+        } else if (swimmer.state === 'STANDBY') {
+          const elapsedStandby = nowPerf - swimmer.standbyStartTimePerf;
+          if (elapsedStandby >= swimmer.standbyDurationMs) {
+            // スタンバイ完了！個別タイマー起動
             swimmer.state = 'RUNNING';
-            swimmer.startedAtMainElapsed = accumulatedOffsetMs;
-            swimmer.currentElapsed = mainElapsedMs - accumulatedOffsetMs;
+            swimmer.startTimePerf = nowPerf;
+            swimmer.startDate = nowDate;
+            swimmer.pausedElapsed = 0;
+            swimmer.currentElapsed = 0;
             newlyStarted.push(swimmer.id);
             this.justStartedSwimmers.add(swimmer.id);
-          } else {
-            swimmer.currentElapsed = 0;
-          }
-        } else if (swimmer.state === 'RUNNING') {
-          if (mainState === 'RUNNING') {
-            swimmer.currentElapsed = Math.max(0, mainElapsedMs - swimmer.startedAtMainElapsed);
           }
         }
       });
     });
 
-    return newlyStarted;
+    return { newlyStarted, newlyCycled };
+  }
+
+  /**
+   * 個別スイマーのスタンバイ残り時間 (ms)
+   */
+  getSwimmerStandbyRemainingMs(swimmer) {
+    if (swimmer.state !== 'STANDBY') return 0;
+    const nowPerf = performance.now();
+    const elapsedStandby = nowPerf - swimmer.standbyStartTimePerf;
+    return Math.max(0, swimmer.standbyDurationMs - elapsedStandby);
   }
 
   /**
    * 個別スイマーのラップ打刻
-   * 計測中または停止中はもちろん、待機中に手動で押された場合も即座にスタート＆打刻可能
+   * サイクル練習（本数リセット）時も、各本数内での正確な区間タイムとスプリットタイムを計算
    */
-  recordSwimmerLap(laneId, swimmerId, mainElapsedMs) {
+  recordSwimmerLap(laneId, swimmerId) {
     const lane = this.lanes.find(l => l.id === laneId);
     if (!lane) return null;
     const swimmer = lane.swimmers.find(s => s.id === swimmerId);
@@ -261,23 +318,34 @@ export class LaneManager {
     // 待機中または未スタートでLAPが押された場合は手動即時スタート扱い
     if (swimmer.state === 'STANDBY' || swimmer.state === 'IDLE') {
       swimmer.state = 'RUNNING';
-      swimmer.startedAtMainElapsed = mainElapsedMs;
+      swimmer.startTimePerf = performance.now();
+      swimmer.startDate = Date.now();
+      swimmer.pausedElapsed = 0;
       swimmer.currentElapsed = 0;
+    } else if (swimmer.state === 'RUNNING') {
+      swimmer.currentElapsed = this._calculateSwimmerElapsed(swimmer);
     }
 
-    const splitTime = swimmer.currentElapsed;
-    const lapNumber = swimmer.laps.length + 1;
-    const prevSplit = swimmer.laps.length > 0 
-      ? swimmer.laps[swimmer.laps.length - 1].splitTime 
+    const currentCycle = swimmer.cycleNumber || 1;
+    const splitTime = swimmer.currentElapsed; // この本数（サイクル）のスタートからの経過時間
+
+    // 現在の本数（サイクル）内での過去ラップ記録を探す
+    const currentCycleLaps = swimmer.laps.filter(l => (l.cycleNumber || 1) === currentCycle);
+    const prevSplitInCycle = currentCycleLaps.length > 0
+      ? currentCycleLaps[currentCycleLaps.length - 1].splitTime
       : 0;
 
-    const lapTime = splitTime - prevSplit;
+    // この本数内での区間タイム (タイマーリセット後も正確に0秒基準で計算)
+    const lapTime = Math.max(0, splitTime - prevSplitInCycle);
+    const lapNumber = swimmer.laps.length + 1;
+    const cycleLapNumber = currentCycleLaps.length + 1;
 
     const lapRecord = {
       lapNumber,
+      cycleNumber: currentCycle,
+      cycleLapNumber,
       lapTime,
       splitTime,
-      overallTime: mainElapsedMs,
       recordedAt: new Date().toISOString()
     };
 
@@ -286,32 +354,15 @@ export class LaneManager {
   }
 
   /**
-   * 指定レーン内の動作中全スイマーの一括ラップ打刻
+   * 全員のLAPを一括打刻
    */
-  recordLaneAllLaps(laneId, mainElapsedMs) {
-    const lane = this.lanes.find(l => l.id === laneId);
-    if (!lane) return [];
-
-    const results = [];
-    lane.swimmers.forEach(swimmer => {
-      if (swimmer.state === 'RUNNING') {
-        const lap = this.recordSwimmerLap(lane.id, swimmer.id, mainElapsedMs);
-        if (lap) results.push({ laneId: lane.id, swimmerId: swimmer.id, lap });
-      }
-    });
-    return results;
-  }
-
-  /**
-   * 全レーン・全スイマーの一斉ラップ打刻
-   */
-  recordAllLaps(mainElapsedMs) {
+  recordAllLaps() {
     const results = [];
     this.lanes.forEach(lane => {
       lane.swimmers.forEach(swimmer => {
         if (swimmer.state === 'RUNNING') {
-          const lap = this.recordSwimmerLap(lane.id, swimmer.id, mainElapsedMs);
-          if (lap) results.push({ laneId: lane.id, swimmerId: swimmer.id, lap });
+          const lap = this.recordSwimmerLap(lane.id, swimmer.id);
+          if (lap) results.push({ lane, swimmer, lap });
         }
       });
     });
@@ -321,52 +372,104 @@ export class LaneManager {
   /**
    * 個別スイマーの停止
    */
-  stopSwimmer(laneId, swimmerId, mainElapsedMs) {
+  stopSwimmer(laneId, swimmerId) {
     const lane = this.lanes.find(l => l.id === laneId);
     if (!lane) return;
     const swimmer = lane.swimmers.find(s => s.id === swimmerId);
     if (!swimmer || swimmer.state !== 'RUNNING') return;
 
+    swimmer.pausedElapsed = this._calculateSwimmerElapsed(swimmer);
+    swimmer.currentElapsed = swimmer.pausedElapsed;
     swimmer.state = 'STOPPED';
-    swimmer.stoppedAtElapsed = swimmer.currentElapsed;
   }
 
   /**
    * 個別スイマーの再開
    */
-  resumeSwimmer(laneId, swimmerId, mainElapsedMs) {
+  resumeSwimmer(laneId, swimmerId) {
     const lane = this.lanes.find(l => l.id === laneId);
     if (!lane) return;
     const swimmer = lane.swimmers.find(s => s.id === swimmerId);
     if (!swimmer || swimmer.state !== 'STOPPED') return;
 
+    swimmer.startTimePerf = performance.now();
+    swimmer.startDate = Date.now();
     swimmer.state = 'RUNNING';
-    swimmer.startedAtMainElapsed = mainElapsedMs - swimmer.stoppedAtElapsed;
   }
 
   /**
    * 全スイマーの一括停止
    */
-  stopAll(mainElapsedMs) {
+  stopAll() {
     this.lanes.forEach(lane => {
       lane.swimmers.forEach(swimmer => {
         if (swimmer.state === 'RUNNING') {
-          this.stopSwimmer(lane.id, swimmer.id, mainElapsedMs);
+          this.stopSwimmer(lane.id, swimmer.id);
         }
       });
     });
   }
 
   /**
-   * 全リセット
+   * 全スイマーの一括再開
+   */
+  resumeAll() {
+    this.lanes.forEach(lane => {
+      lane.swimmers.forEach(swimmer => {
+        if (swimmer.state === 'STOPPED') {
+          this.resumeSwimmer(lane.id, swimmer.id);
+        }
+      });
+    });
+  }
+
+  /**
+   * サイクル到達時のリセット（記録・ラップ履歴は消さずに保持して全選手個別再スタート）
+   * @param {number} cycleIndex 次のサイクル番号 (1, 2, 3...)
+   */
+  onCycleReset(cycleIndex = 1) {
+    const nowPerf = performance.now();
+    const nowDate = Date.now();
+
+    this.lanes.forEach(lane => {
+      let accumulatedOffsetMs = 0;
+      lane.swimmers.forEach(swimmer => {
+        accumulatedOffsetMs += swimmer.offsetSeconds * 1000;
+        
+        if (accumulatedOffsetMs === 0) {
+          // 先頭選手は0秒スタート
+          swimmer.state = 'RUNNING';
+          swimmer.startTimePerf = nowPerf;
+          swimmer.startDate = nowDate;
+          swimmer.pausedElapsed = 0;
+          swimmer.currentElapsed = 0;
+          this.justStartedSwimmers.add(swimmer.id);
+        } else {
+          // 2人目以降は待機状態
+          swimmer.state = 'STANDBY';
+          swimmer.standbyStartTimePerf = nowPerf;
+          swimmer.standbyDurationMs = accumulatedOffsetMs;
+          swimmer.pausedElapsed = 0;
+          swimmer.currentElapsed = 0;
+        }
+        // 重要: 各選手の過去の swimmer.laps は消さずにそのまま保持
+      });
+    });
+  }
+
+  /**
+   * 全リセット (完全初期化)
    */
   resetAll() {
     this.lanes.forEach(lane => {
       lane.swimmers.forEach(swimmer => {
         swimmer.state = 'IDLE';
+        swimmer.startTimePerf = 0;
+        swimmer.startDate = 0;
+        swimmer.pausedElapsed = 0;
         swimmer.currentElapsed = 0;
-        swimmer.startedAtMainElapsed = 0;
-        swimmer.stoppedAtElapsed = 0;
+        swimmer.standbyStartTimePerf = 0;
+        swimmer.standbyDurationMs = 0;
         swimmer.laps = [];
       });
     });
@@ -374,93 +477,103 @@ export class LaneManager {
   }
 
   /**
-   * 現在の全階層セッションデータをエクスポート用オブジェクトとして出力
+   * 現在の全レーン・スイマーの計測結果をセッション保存用オブジェクトとして生成
+   * @param {string} title セッション名
+   * @param {number} totalElapsed 総経過時間 (ms)
+   * @returns {Object} セッションデータ
    */
-  getSessionData(sessionTitle = '', mainTotalElapsed = 0) {
+  getSessionData(title, totalElapsed = 0) {
     const now = new Date();
-    const formattedDate = now.toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+    const lanesData = this.lanes.map(lane => {
+      const swimmersData = lane.swimmers.map(swimmer => {
+        const laps = swimmer.laps ? swimmer.laps.slice() : [];
+        let finalTime = swimmer.currentElapsed;
+        if (laps.length > 0) {
+          finalTime = laps[laps.length - 1].splitTime;
+        }
+
+        let bestLap = null;
+        let avgLap = null;
+        if (laps.length > 0) {
+          let minLap = Infinity;
+          let sumLap = 0;
+          laps.forEach(l => {
+            if (l.lapTime < minLap) minLap = l.lapTime;
+            sumLap += l.lapTime;
+          });
+          bestLap = minLap;
+          avgLap = Math.round(sumLap / laps.length);
+        }
+
+        return {
+          id: swimmer.id,
+          order: swimmer.order,
+          name: swimmer.name,
+          offsetSeconds: swimmer.offsetSeconds,
+          finalTime,
+          bestLap,
+          avgLap,
+          laps
+        };
+      });
+
+      return {
+        id: lane.id,
+        laneNumber: lane.laneNumber,
+        name: lane.name,
+        color: lane.color,
+        swimmers: swimmersData
+      };
     });
 
     let totalSwimmers = 0;
     this.lanes.forEach(l => totalSwimmers += l.swimmers.length);
 
     return {
-      id: `session_${Date.now()}`,
-      title: sessionTitle || `水泳計測 ${formattedDate}`,
+      id: 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      title: title || `水泳計測 ${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`,
       createdAt: now.toISOString(),
-      displayDate: formattedDate,
-      totalElapsed: mainTotalElapsed,
-      totalLanes: this.lanes.length,
-      totalSwimmers: totalSwimmers,
-      lanes: this.lanes.map(lane => {
-        return {
-          id: lane.id,
-          laneNumber: lane.laneNumber,
-          name: lane.name,
-          color: lane.color,
-          swimmers: lane.swimmers.map(swimmer => {
-            let bestLap = null;
-            let avgLap = null;
-            if (swimmer.laps.length > 0) {
-              const times = swimmer.laps.map(l => l.lapTime);
-              bestLap = Math.min(...times);
-              avgLap = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-            }
-            return {
-              id: swimmer.id,
-              order: swimmer.order,
-              name: swimmer.name,
-              offsetSeconds: swimmer.offsetSeconds,
-              finalTime: swimmer.currentElapsed,
-              bestLap,
-              avgLap,
-              laps: [...swimmer.laps]
-            };
-          })
-        };
-      })
+      displayDate: `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`,
+      totalElapsed: Math.max(0, totalElapsed),
+      totalSwimmers,
+      lanes: lanesData
     };
   }
 
   /**
-   * 設定プリセットから復元 (旧バージョンデータ互換対応)
+   * プリセット保存用データ形式へ変換
    */
-  loadFromConfig(configList) {
-    if (!Array.isArray(configList) || configList.length === 0) return;
-    
-    this.lanes = configList.map((cfgLane, idx) => {
-      const lane = this.createLaneObject(idx + 1, cfgLane.name, idx);
+  toConfig() {
+    return this.lanes.map(lane => ({
+      laneNumber: lane.laneNumber,
+      name: lane.name,
+      color: lane.color,
+      swimmers: lane.swimmers.map(s => ({
+        order: s.order,
+        name: s.name,
+        offsetSeconds: s.offsetSeconds
+      }))
+    }));
+  }
 
-      if (Array.isArray(cfgLane.swimmers) && cfgLane.swimmers.length > 0) {
-        // 新形式: swimmers 配列がある場合
-        lane.swimmers = cfgLane.swimmers.map((cfgSwimmer, sIdx) => {
-          return this.createSwimmerObject(
-            lane.id,
-            sIdx + 1,
-            cfgSwimmer.name,
-            cfgSwimmer.offsetSeconds
-          );
-        });
-      } else {
-        // 旧形式（1レーン1人）からの互換移行、または空の場合
-        const initialName = cfgLane.name || `選手 ${idx + 1}-1`;
-        const initialOffset = cfgLane.offsetSeconds !== undefined ? cfgLane.offsetSeconds : 0;
-        lane.swimmers = [
-          this.createSwimmerObject(lane.id, 1, initialName, initialOffset)
-        ];
-      }
-      return lane;
-    });
+  /**
+   * プリセットデータから復元
+   */
+  loadFromConfig(config) {
+    if (!Array.isArray(config) || config.length === 0) return;
 
-    // もしレーンが0件になった場合はデフォルト構造を再生成
-    if (this.lanes.length === 0) {
-      this.initializeDefaultStructure();
-    }
+    this.lanes = config.map((lData, lIdx) => ({
+      id: 'lane_' + (lIdx + 1),
+      laneNumber: lData.laneNumber || (lIdx + 1),
+      name: lData.name || `第${lIdx + 1}レーン`,
+      color: lData.color || { bg: 'linear-gradient(135deg, #00f0ff, #0284c7)', text: '#000' },
+      swimmers: Array.isArray(lData.swimmers) ? lData.swimmers.map((sData, sIdx) => {
+        return this._createSwimmer(
+          sData.order || (sIdx + 1),
+          sData.name || `選手 ${lIdx + 1}-${sIdx + 1}`,
+          sData.offsetSeconds !== undefined ? sData.offsetSeconds : (sIdx === 0 ? 0 : 5)
+        );
+      }) : []
+    }));
   }
 }

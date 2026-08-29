@@ -18,6 +18,7 @@ class AquaTimerApp {
     this.currentExportSession = null;
     this.currentExportFormat = 'text'; // 'text' | 'csv'
     this.activeTab = 'view-timer';
+    this.currentCycleSeconds = 0; // 0ならOFF
 
     this.elements = {};
   }
@@ -35,8 +36,8 @@ class AquaTimerApp {
     this.registerServiceWorker();
 
     // タイマー更新リスナーの登録
-    this.timer.subscribe((elapsedMs, state) => {
-      this.onTimerTick(elapsedMs, state);
+    this.timer.subscribe((elapsedMs, state, totalElapsedMs, cycleNumber) => {
+      this.onTimerTick(elapsedMs, state, totalElapsedMs, cycleNumber);
     });
 
     console.log('AquaTimer Pro initialized.');
@@ -53,13 +54,24 @@ class AquaTimerApp {
       iconSoundOff: document.getElementById('icon-sound-off'),
       btnHeaderSave: document.getElementById('btn-header-save'),
 
-      // メインタイマー
-      mainTimeText: document.getElementById('main-time-text'),
-      mainTimeCentis: document.getElementById('main-time-centis'),
+      // 一括コントロール
       btnMainToggle: document.getElementById('btn-main-toggle'),
       btnMainToggleText: document.getElementById('btn-main-toggle-text'),
       btnMainLapAll: document.getElementById('btn-main-lap-all'),
       btnMainReset: document.getElementById('btn-main-reset'),
+
+      // サイクル
+      btnOpenCycleModal: document.getElementById('btn-open-cycle-modal'),
+      cycleLabelText: document.getElementById('cycle-label-text'),
+      cycleProgressWrap: document.getElementById('cycle-progress-wrap'),
+      cycleRoundBadge: document.getElementById('cycle-round-badge'),
+      cycleRemainText: document.getElementById('cycle-remain-text'),
+      btnNextCycle: document.getElementById('btn-next-cycle'),
+      modalCycleSettings: document.getElementById('modal-cycle-settings'),
+      cyclePresetBtns: document.querySelectorAll('.cycle-preset-btn'),
+      inputCycleMin: document.getElementById('input-cycle-min'),
+      inputCycleSec: document.getElementById('input-cycle-sec'),
+      btnSaveCycle: document.getElementById('btn-save-cycle'),
 
       // ツールバー
       lanesCountBadge: document.getElementById('lanes-count-badge'),
@@ -200,6 +212,33 @@ class AquaTimerApp {
       this.showToast(`${lane.name} を追加しました`);
     });
 
+    // サイクル設定モーダル起動
+    this.elements.btnOpenCycleModal.addEventListener('click', () => {
+      this.openCycleModal();
+    });
+
+    // サイクルプリセットボタンクリック
+    this.elements.cyclePresetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sec = Number(btn.dataset.seconds) || 0;
+        this.elements.inputCycleMin.value = Math.floor(sec / 60);
+        this.elements.inputCycleSec.value = sec % 60;
+        // 選択スタイル
+        this.elements.cyclePresetBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // サイクル設定保存
+    this.elements.btnSaveCycle.addEventListener('click', () => {
+      this.saveCycleConfig();
+    });
+
+    // 手動で次サイクルへリセット進む
+    this.elements.btnNextCycle.addEventListener('click', () => {
+      this.advanceCycleManually();
+    });
+
     // スイマー編集モーダル内イベント
     this.elements.swimmerOffsetPresetBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -329,26 +368,28 @@ class AquaTimerApp {
   }
 
   /**
-   * メインタイマートグル
+   * 一斉タイマートグル (全選手スタート / 全停止 / 再開)
    */
   toggleMainTimer() {
     if (this.timer.state === 'RUNNING') {
       this.timer.pause();
-      const elapsed = this.timer.getElapsedTime();
-      this.laneManager.stopAll(elapsed);
+      this.laneManager.stopAll();
       this.sound.playStop();
       this.updateMainControlsUI('PAUSED');
-      this.showToast('タイマーを停止しました');
-    } else {
-      const isInitialStart = this.timer.state === 'IDLE';
+      this.showToast('全選手の計測を停止しました');
+    } else if (this.timer.state === 'PAUSED') {
       this.timer.start();
-      const elapsed = this.timer.getElapsedTime();
-
-      if (isInitialStart) {
-        this.laneManager.onMainStart(elapsed);
-      }
+      this.laneManager.resumeAll();
       this.sound.playStart();
       this.updateMainControlsUI('RUNNING');
+      this.showToast('計測を再開しました');
+    } else {
+      // IDLEからの一斉スタート
+      this.timer.start();
+      this.laneManager.onMainStart();
+      this.sound.playStart();
+      this.updateMainControlsUI('RUNNING');
+      this.showToast('一斉スタート！');
     }
     this.renderLanes();
   }
@@ -357,8 +398,7 @@ class AquaTimerApp {
    * 全員一括ラップ
    */
   recordAllLaps() {
-    const elapsed = this.timer.getElapsedTime();
-    const results = this.laneManager.recordAllLaps(elapsed);
+    const results = this.laneManager.recordAllLaps();
     if (results.length > 0) {
       this.sound.playLap();
       this.showToast(`全 ${results.length} 名のLAPを記録しました`);
@@ -367,7 +407,7 @@ class AquaTimerApp {
   }
 
   /**
-   * メインリセット
+   * 全リセット
    */
   resetMainTimer() {
     if (this.timer.state === 'RUNNING') {
@@ -377,8 +417,7 @@ class AquaTimerApp {
     this.laneManager.resetAll();
     this.updateMainControlsUI('IDLE');
     this.renderLanes();
-    this.updateClockDisplay(0);
-    this.showToast('タイマーをリセットしました');
+    this.showToast('全タイマーをリセットしました');
   }
 
   /**
@@ -407,15 +446,76 @@ class AquaTimerApp {
   }
 
   /**
-   * 毎フレームのタイマー更新処理
+   * サイクル設定モーダルを開く
    */
-  onTimerTick(mainElapsedMs, mainState) {
-    // 1. メイン時計の表示
-    this.updateClockDisplay(mainElapsedMs);
+  openCycleModal() {
+    const sec = this.currentCycleSeconds;
+    this.elements.inputCycleMin.value = Math.floor(sec / 60);
+    this.elements.inputCycleSec.value = sec % 60;
 
-    // 2. スイマーの時間差スタート判定
-    const newlyStarted = this.laneManager.update(mainElapsedMs, mainState);
-    if (newlyStarted.length > 0) {
+    this.elements.cyclePresetBtns.forEach(btn => {
+      if (Number(btn.dataset.seconds) === sec) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    this.openModal(this.elements.modalCycleSettings);
+  }
+
+  /**
+   * サイクル設定を保存して適用
+   */
+  saveCycleConfig() {
+    const min = Number(this.elements.inputCycleMin.value) || 0;
+    const sec = Number(this.elements.inputCycleSec.value) || 0;
+    const totalSeconds = min * 60 + sec;
+
+    this.currentCycleSeconds = totalSeconds;
+    this.timer.setCycleTime(totalSeconds * 1000);
+
+    if (totalSeconds > 0) {
+      const formatted = TimerEngine.formatCycleLabel(totalSeconds * 1000);
+      this.elements.cycleLabelText.textContent = `サイクル: ${formatted}`;
+      this.elements.cycleProgressWrap.style.display = 'flex';
+      this.showToast(`サイクルタイムを ${formatted} に設定しました`);
+    } else {
+      this.elements.cycleLabelText.textContent = 'サイクル: OFF';
+      this.elements.cycleProgressWrap.style.display = 'none';
+      this.showToast('サイクルタイムを OFF にしました');
+    }
+
+    this.closeModal(this.elements.modalCycleSettings);
+  }
+
+  /**
+   * 手動で今すぐ次のサイクルへリセットスタート
+   */
+  advanceCycleManually() {
+    if (this.timer.state !== 'RUNNING') {
+      this.showToast('タイマー稼働中に実行できます');
+      return;
+    }
+    this.timer.advanceToNextCycle();
+  }
+
+  /**
+   * 毎フレームのタイマー更新処理（各選手が個別タイマーで駆動）
+   */
+  onTimerTick(cycleElapsedMs, mainState, totalElapsedMs, cycleNumber) {
+    const cycleMs = this.currentCycleSeconds * 1000;
+
+    // 1. サイクル進行状況＆カウントダウン音の更新
+    if (this.currentCycleSeconds > 0) {
+      this.updateCycleProgress(cycleElapsedMs, cycleNumber);
+    }
+
+    // 2. スイマーの個別時間差スタート判定＆個別サイクルリセット判定
+    const { newlyStarted, newlyCycled } = this.laneManager.update(cycleMs);
+
+    // 待機から自動スタートした選手
+    if (newlyStarted && newlyStarted.length > 0) {
       this.sound.playLaneStart();
       newlyStarted.forEach(swimmerId => {
         const card = document.getElementById(`swimmer-card-${swimmerId}`);
@@ -426,29 +526,47 @@ class AquaTimerApp {
       });
     }
 
+    // 個別サイクル到達で次の本数へ自動リセットスタートした選手
+    if (newlyCycled && newlyCycled.length > 0) {
+      this.sound.playLaneStart();
+      newlyCycled.forEach(({ swimmer, cycleNumber }) => {
+        const card = document.getElementById(`swimmer-card-${swimmer.id}`);
+        if (card) {
+          card.classList.add('flash-start');
+          setTimeout(() => card.classList.remove('flash-start'), 600);
+        }
+        this.showToast(`${swimmer.name}: ${cycleNumber}本目 スタート！`, 1200);
+      });
+    }
+
     // 3. 各スイマーのタイマー数値を高速更新
-    this.updateSwimmersTimeDisplay(mainElapsedMs);
+    this.updateSwimmersTimeDisplay();
   }
 
   /**
-   * メイン時計のテキスト描画
+   * サイクルプログレス・残り時間とカウントダウン音の処理
    */
-  updateClockDisplay(ms) {
-    const formatted = TimerEngine.formatTime(ms);
-    const dotIndex = formatted.lastIndexOf('.');
-    if (dotIndex !== -1) {
-      this.elements.mainTimeText.textContent = formatted.substring(0, dotIndex);
-      this.elements.mainTimeCentis.textContent = formatted.substring(dotIndex);
-    } else {
-      this.elements.mainTimeText.textContent = formatted;
-      this.elements.mainTimeCentis.textContent = '.00';
+  updateCycleProgress(cycleElapsedMs, cycleNumber) {
+    const cycleMs = this.currentCycleSeconds * 1000;
+    const remainingMs = Math.max(0, cycleMs - cycleElapsedMs);
+    const remainSec = Math.ceil(remainingMs / 1000);
+
+    this.elements.cycleRoundBadge.textContent = `${cycleNumber}本目`;
+    this.elements.cycleRemainText.textContent = `次まで ${TimerEngine.formatTime(remainingMs)}`;
+
+    // サイクル終了3秒前、2秒前、1秒前にピッ予告音を再生
+    if (this.timer.state === 'RUNNING' && remainSec <= 3 && remainSec > 0) {
+      if (this.timer.lastWarnSecond !== remainSec) {
+        this.timer.lastWarnSecond = remainSec;
+        this.sound.playCountdownTick();
+      }
     }
   }
 
   /**
    * 各スイマーの個別タイマー数値・ボタン状態をDOM直接更新
    */
-  updateSwimmersTimeDisplay(mainElapsedMs) {
+  updateSwimmersTimeDisplay() {
     const isMainRunning = this.timer.state === 'RUNNING';
 
     this.laneManager.lanes.forEach(lane => {
@@ -457,13 +575,10 @@ class AquaTimerApp {
         const statusElem = document.getElementById(`swimmer-status-${swimmer.id}`);
         const cardElem = document.getElementById(`swimmer-card-${swimmer.id}`);
         const btnLap = cardElem ? cardElem.querySelector('.swimmer-btn-lap') : null;
-        const btnStop = cardElem ? cardElem.querySelector('[data-action="swimmer-stop"], [data-action="swimmer-resume"]') : null;
         if (!timeElem) return;
 
-        const offsetMs = swimmer.startedAtMainElapsed || this.laneManager.getSwimmerAbsoluteOffsetMs(lane.id, swimmer.id);
-
         if (swimmer.state === 'STANDBY') {
-          const remainingMs = offsetMs - mainElapsedMs;
+          const remainingMs = this.laneManager.getSwimmerStandbyRemainingMs(swimmer);
           timeElem.className = 'swimmer-digital-clock standby';
           timeElem.innerHTML = `${TimerEngine.formatCountdown(remainingMs)}`;
           if (statusElem) {
@@ -471,7 +586,6 @@ class AquaTimerApp {
             statusElem.textContent = '待機中';
           }
           if (cardElem) cardElem.className = `swimmer-card state-standby ${swimmer.isExpanded ? 'expanded' : ''}`;
-          // メインタイマー稼働中はLAPボタンを有効にしておく（手動前倒しスタート・ラップも可能）
           if (btnLap) btnLap.disabled = !isMainRunning;
         } else if (swimmer.state === 'RUNNING') {
           timeElem.className = 'swimmer-digital-clock';
@@ -673,7 +787,7 @@ class AquaTimerApp {
   }
 
   /**
-   * スイマーのラップ一覧テーブル
+   * スイマーのラップ一覧テーブル (区間Lapと累積Splitのみのシンプル構成)
    */
   renderSwimmerLapsTable(swimmer) {
     if (!swimmer.laps || swimmer.laps.length === 0) {
@@ -687,12 +801,12 @@ class AquaTimerApp {
 
     const rows = swimmer.laps.slice().reverse().map(lap => {
       const isBest = swimmer.laps.length > 1 && lap.lapTime === minLapTime;
+      const cycleInfo = lap.cycleNumber ? `<span style="font-size:0.6rem; color:var(--accent-amber); margin-left:2px;">[${lap.cycleNumber}本目]</span>` : '';
       return `
         <tr class="${isBest ? 'best-lap' : ''}">
-          <td>#${lap.lapNumber} ${isBest ? '👑' : ''}</td>
+          <td>#${lap.lapNumber}${cycleInfo} ${isBest ? '👑' : ''}</td>
           <td>${TimerEngine.formatTime(lap.lapTime)}</td>
           <td>${TimerEngine.formatTime(lap.splitTime)}</td>
-          <td>${TimerEngine.formatTime(lap.overallTime)}</td>
         </tr>
       `;
     }).join('');
@@ -702,9 +816,8 @@ class AquaTimerApp {
         <thead>
           <tr>
             <th>No.</th>
-            <th>区間(Lap)</th>
-            <th>累積(Split)</th>
-            <th>全体</th>
+            <th>区間 (Lap)</th>
+            <th>累積 (Split)</th>
           </tr>
         </thead>
         <tbody>
@@ -731,21 +844,18 @@ class AquaTimerApp {
       const swimmerId = btn.dataset.swimmerId;
 
       if (action === 'swimmer-lap') {
-        const elapsed = this.timer.getElapsedTime();
-        const lap = this.laneManager.recordSwimmerLap(laneId, swimmerId, elapsed);
+        const lap = this.laneManager.recordSwimmerLap(laneId, swimmerId);
         if (lap) {
           this.sound.playLap();
           // 該当スイマーのカード表示を高速部分更新
           this.updateSwimmerLapCardUi(laneId, swimmerId);
         }
       } else if (action === 'swimmer-stop') {
-        const elapsed = this.timer.getElapsedTime();
-        this.laneManager.stopSwimmer(laneId, swimmerId, elapsed);
+        this.laneManager.stopSwimmer(laneId, swimmerId);
         this.sound.playStop();
         this.renderLanes();
       } else if (action === 'swimmer-resume') {
-        const elapsed = this.timer.getElapsedTime();
-        this.laneManager.resumeSwimmer(laneId, swimmerId, elapsed);
+        this.laneManager.resumeSwimmer(laneId, swimmerId);
         this.sound.playStart();
         this.renderLanes();
       } else if (action === 'toggle-swimmer-accordion') {
