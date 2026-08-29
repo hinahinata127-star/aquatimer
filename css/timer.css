@@ -1,0 +1,522 @@
+/* ===================================================
+   AquaTimer Pro - タイマー計測画面（縦割りマルチカラム）
+   =================================================== */
+
+/* メインタイマー固定コントロール領域 */
+.timer-header-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 10px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.main-clock-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.clock-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.main-digital-clock {
+  font-family: var(--font-mono);
+  font-size: 2.3rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 0 16px var(--accent-cyan-glow);
+  display: flex;
+  align-items: baseline;
+}
+
+.main-digital-clock .centis {
+  font-size: 1.5rem;
+  color: var(--accent-cyan);
+  margin-left: 2px;
+}
+
+/* メイン一括コントロールボタン群 */
+.main-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 540px;
+}
+
+.main-btn {
+  flex: 1;
+  height: 44px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: var(--transition-fast);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.main-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.main-btn-start {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #022015;
+  box-shadow: 0 4px 14px var(--accent-green-glow);
+}
+
+.main-btn-stop {
+  background: linear-gradient(135deg, #f43f5e, #be123c);
+  color: #ffffff;
+  box-shadow: 0 4px 14px var(--accent-rose-glow);
+}
+
+.main-btn-lap-all {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #ffffff;
+  box-shadow: 0 4px 12px var(--accent-cyan-glow);
+}
+
+.main-btn-reset {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  flex: 0.55;
+}
+
+/* レーン全体ヘッダー */
+.lanes-top-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 4px;
+}
+
+.lanes-summary-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lanes-summary-badge {
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--accent-cyan);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn-sm {
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-cyan);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.action-btn-sm:hover {
+  background: rgba(0, 240, 255, 0.22);
+  border-color: var(--accent-cyan);
+}
+
+/* ===================================================
+   縦割り（マルチカラム）レイアウトコンテナ
+   =================================================== */
+.lanes-columns-container {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px 85px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
+  min-height: calc(100vh - 210px);
+}
+
+/* レーン縦割りカラム */
+.lane-column {
+  flex: 1 0 310px;
+  max-width: 480px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 4px solid var(--lane-color, var(--accent-cyan));
+}
+
+/* 2レーン表示時のモバイル最適化（横幅に応じて2列収まり） */
+@media (min-width: 680px) {
+  .lane-column {
+    flex: 1 1 calc(50% - 12px);
+  }
+}
+
+@media (min-width: 1040px) {
+  .lane-column {
+    flex: 1 1 calc(33.333% - 12px);
+  }
+}
+
+/* レーン縦割りヘッダー */
+.lane-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.lane-col-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lane-badge-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--lane-color, #00f0ff);
+  color: #000;
+  letter-spacing: -0.2px;
+}
+
+.lane-col-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lane-swimmers-count {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.lane-col-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-add-swimmer-sm {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-add-swimmer-sm:hover {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+.btn-lane-menu {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+/* スイマーリストコンテナ */
+.swimmers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+/* ===================================================
+   スイマーカード (1画面で複数人同時に押せる高効率UI)
+   =================================================== */
+.swimmer-card {
+  background: rgba(8, 18, 36, 0.85);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+.swimmer-card.state-running {
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
+}
+
+.swimmer-card.state-standby {
+  border-color: rgba(245, 158, 11, 0.5);
+  animation: pulseStandby 1.5s infinite alternate;
+}
+
+.swimmer-card.state-stopped {
+  opacity: 0.8;
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.swimmer-card.flash-start {
+  animation: flashGreen 0.6s ease-out;
+}
+
+/* スイマー上段情報 */
+.swimmer-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.swimmer-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.swimmer-order-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.swimmer-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.swimmer-meta-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.swimmer-offset-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.swimmer-offset-tag.has-offset {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--accent-amber);
+}
+
+.swimmer-status-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+/* スイマー中段: タイマー ＆ 最新LAP情報 */
+.swimmer-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.swimmer-digital-clock {
+  font-family: var(--font-mono);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+}
+
+.swimmer-digital-clock.standby {
+  color: var(--accent-amber);
+  font-size: 1.35rem;
+}
+
+.swimmer-digital-clock .centis {
+  font-size: 1.05rem;
+  color: var(--accent-cyan);
+  margin-left: 2px;
+}
+
+.swimmer-digital-clock.standby .centis {
+  color: var(--accent-amber);
+}
+
+.swimmer-latest-lap-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.swimmer-latest-lap-box strong {
+  color: var(--accent-green);
+  font-size: 0.82rem;
+}
+
+/* スイマー下段: 高速アクションボタン列 */
+.swimmer-actions-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.swimmer-btn-lap {
+  flex: 3;
+  height: 42px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #022015;
+  font-size: 0.98rem;
+  font-weight: 800;
+  border-radius: 10px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-shadow: 0 2px 8px var(--accent-green-glow);
+}
+
+.swimmer-btn-lap:active {
+  transform: scale(0.96);
+}
+
+.swimmer-btn-lap:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.swimmer-btn-stop {
+  flex: 1.2;
+  height: 42px;
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.swimmer-btn-resume {
+  flex: 1.2;
+  height: 42px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.swimmer-btn-accordion {
+  flex: 0.9;
+  height: 42px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.swimmer-btn-accordion.open {
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+/* スイマー内ラップ一覧アコーディオン */
+.swimmer-laps-accordion {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+
+.swimmer-laps-accordion.show {
+  display: flex;
+}

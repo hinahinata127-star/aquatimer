@@ -1,0 +1,28 @@
+{
+  "name": "AquaTimer Pro - 水泳ストップウォッチ",
+  "short_name": "AquaTimer",
+  "description": "水泳トレーニング用 複数レーン・時間差スタート対応 高精度ストップウォッチ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0f1d",
+  "theme_color": "#00f0ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "assets/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

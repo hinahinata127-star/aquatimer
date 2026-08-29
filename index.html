@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>AquaTimer Pro - 水泳ストップウォッチ</title>
+  <meta name="description" content="水泳トレーニング用 複数レーン・複数人時間差計測対応 高精度ストップウォッチ">
+  
+  <!-- iOS Safari & PWA メタ設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AquaTimer">
+  <meta name="theme-color" content="#060d1a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="apple-touch-icon" href="assets/icon.svg">
+
+  <!-- Google Fonts: JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- スタイルシート (キャッシュバスター付与) -->
+  <link rel="stylesheet" href="css/style.css?v=2.4">
+  <link rel="stylesheet" href="css/timer.css?v=2.4">
+  <link rel="stylesheet" href="css/history.css?v=2.4">
+</head>
+<body>
+  <div id="app-container">
+    
+    <!-- アプリ最上部ヘッダー -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+          </svg>
+        </div>
+        <h1 class="brand-title">AquaTimer Pro</h1>
+        <span style="font-size:0.65rem; background:rgba(0,240,255,0.2); color:var(--accent-cyan); padding:2px 6px; border-radius:6px; font-weight:800;">v2.0 縦割り</span>
+      </div>
+
+      <div class="header-actions">
+        <!-- キャッシュクリア＆最新化ボタン -->
+        <button id="btn-force-refresh" class="icon-btn" title="最新状態に更新" aria-label="最新化">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+        </button>
+
+        <!-- 音声ミュートトグル -->
+        <button id="btn-toggle-sound" class="icon-btn active" title="効果音 ON/OFF" aria-label="効果音切り替え">
+          <svg id="icon-sound-on" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+          <svg id="icon-sound-off" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:none;">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+          </svg>
+        </button>
+
+        <!-- セッション保存ボタン -->
+        <button id="btn-header-save" class="icon-btn" title="現在の計測を保存" aria-label="計測保存">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- メインビュー領域 -->
+    <main class="main-view-container">
+
+      <!-- ================= 画面1: メイン計測画面 (縦割りレイアウト) ================= -->
+      <section id="view-timer" class="view-section active">
+        
+        <!-- 上部固定 メインタイマー & コントロール -->
+        <div class="timer-header-panel">
+          <div class="main-clock-wrapper">
+            <span class="clock-label">TOTAL TIME (全体経過)</span>
+            <div id="main-timer-display" class="main-digital-clock">
+              <span id="main-time-text">00:00</span><span class="centis" id="main-time-centis">.00</span>
+            </div>
+          </div>
+
+          <!-- 一括操作ボタングループ -->
+          <div class="main-controls-row">
+            <!-- スタート / ストップ トグルボタン -->
+            <button id="btn-main-toggle" class="main-btn main-btn-start" aria-label="一斉スタート">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              <span id="btn-main-toggle-text">一斉スタート</span>
+            </button>
+
+            <!-- 全員一括ラップボタン -->
+            <button id="btn-main-lap-all" class="main-btn main-btn-lap-all" style="display:none;" aria-label="全員LAP">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/>
+              </svg>
+              <span>全員LAP</span>
+            </button>
+
+            <!-- リセットボタン -->
+            <button id="btn-main-reset" class="main-btn main-btn-reset" aria-label="リセット">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+              <span>リセット</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- レーン全体ツールバー -->
+        <div class="lanes-top-toolbar">
+          <div class="lanes-summary-text">
+            <span>登録: </span>
+            <span id="lanes-count-badge" class="lanes-summary-badge">2 レーン</span>
+            <span id="swimmers-count-badge" class="lanes-summary-badge">4 名</span>
+          </div>
+          <div class="toolbar-actions">
+            <button id="btn-add-lane" class="action-btn-sm" aria-label="レーン追加">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+              </svg>
+              <span>レーン追加</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 縦割りマルチカラム レーンコンテナ -->
+        <div id="lanes-columns-container" class="lanes-columns-container">
+          <!-- JSで動的生成 -->
+        </div>
+
+      </section>
+
+      <!-- ================= 画面2: 履歴・データ画面 ================= -->
+      <section id="view-history" class="view-section">
+        <div class="history-view-content">
+          <div class="history-header-bar">
+            <h2 class="history-view-title">計測履歴データ</h2>
+            <div class="history-actions">
+              <button id="btn-clear-history" class="btn btn-secondary" style="font-size:0.8rem; padding: 6px 12px;">
+                履歴全消去
+              </button>
+            </div>
+          </div>
+
+          <!-- 履歴リスト一覧 -->
+          <div id="history-list-container" class="history-list-container">
+            <!-- JSで動的生成 -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 下部ボトムナビゲーション -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-target="view-timer" aria-label="計測画面">
+        <svg viewBox="0 0 24 24">
+          <path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+        </svg>
+        <span>計測</span>
+      </button>
+
+      <button class="nav-tab" data-target="view-history" aria-label="履歴データ">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+        </svg>
+        <span>履歴・出力</span>
+      </button>
+    </nav>
+
+    <!-- トースト通知コンテナ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ================= モーダル1: スイマー（選手）追加/編集 ================= -->
+    <div id="modal-swimmer-edit" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 id="modal-swimmer-title" class="modal-title">選手設定</h3>
+          <button class="modal-close" data-close="modal-swimmer-edit">&times;</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-swimmer-lane-id">
+          <input type="hidden" id="edit-swimmer-id">
+          
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">選手名 / 泳者名</label>
+            <input type="text" id="input-swimmer-name" placeholder="例: 選手 A / 田中" 
+              style="width:100%; padding:10px 12px; background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle); border-radius:10px; color:#fff; font-size:1rem;">
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">
+              時間差スタート (オフセット秒数)
+            </label>
+            <div style="display:flex; gap:8px;">
+              <input type="number" id="input-swimmer-offset" min="0" step="1" placeholder="0" 
+                style="flex:1; padding:10px 12px; background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle); border-radius:10px; color:#fff; font-size:1.1rem; font-family:var(--font-mono);">
+              <span style="display:flex; align-items:center; font-weight:700; color:var(--text-secondary);">秒後スタート</span>
+            </div>
+            
+            <!-- プリセットボタン -->
+            <div style="display:flex; gap:6px; margin-top:4px;">
+              <button type="button" class="btn btn-secondary swimmer-offset-preset-btn" data-offset="0" style="padding:4px 8px; font-size:0.78rem;">0秒 (同時)</button>
+              <button type="button" class="btn btn-secondary swimmer-offset-preset-btn" data-offset="5" style="padding:4px 8px; font-size:0.78rem;">5秒</button>
+              <button type="button" class="btn btn-secondary swimmer-offset-preset-btn" data-offset="10" style="padding:4px 8px; font-size:0.78rem;">10秒</button>
+              <button type="button" class="btn btn-secondary swimmer-offset-preset-btn" data-offset="15" style="padding:4px 8px; font-size:0.78rem;">15秒</button>
+              <button type="button" class="btn btn-secondary swimmer-offset-preset-btn" data-offset="20" style="padding:4px 8px; font-size:0.78rem;">20秒</button>
+            </div>
+          </div>
+
+          <div id="swimmer-delete-row" style="display:flex; justify-content:flex-start; margin-top:8px;">
+            <button id="btn-delete-swimmer" class="btn btn-danger" style="font-size:0.85rem; padding:8px 14px;">
+              この選手を削除
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close="modal-swimmer-edit">キャンセル</button>
+          <button id="btn-save-swimmer" class="btn btn-primary">設定を保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= モーダル2: レーン設定/削除 ================= -->
+    <div id="modal-lane-edit" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 id="modal-lane-title" class="modal-title">レーン設定</h3>
+          <button class="modal-close" data-close="modal-lane-edit">&times;</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-lane-id">
+          
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">レーン表示名</label>
+            <input type="text" id="input-lane-name" placeholder="例: 第1レーン" 
+              style="width:100%; padding:10px 12px; background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle); border-radius:10px; color:#fff; font-size:1rem;">
+          </div>
+
+          <div id="lane-delete-row" style="display:flex; justify-content:flex-start; margin-top:8px;">
+            <button id="btn-delete-lane" class="btn btn-danger" style="font-size:0.85rem; padding:8px 14px;">
+              このレーン（所属選手含む）を削除
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close="modal-lane-edit">キャンセル</button>
+          <button id="btn-save-lane" class="btn btn-primary">設定を保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= モーダル3: セッション保存 ================= -->
+    <div id="modal-save-session" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="modal-title">計測セッションの保存</h3>
+          <button class="modal-close" data-close="modal-save-session">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">セッションタイトル / メモ</label>
+            <input type="text" id="input-session-title" placeholder="例: 50m×4本 メイン練習" 
+              style="width:100%; padding:10px 12px; background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle); border-radius:10px; color:#fff; font-size:1rem;">
+          </div>
+          <p style="font-size:0.82rem; color:var(--text-muted);">
+            保存された記録は「履歴・出力」タブからいつでもテキスト(.txt)やCSVとしてiOS共有・ダウンロードできます。
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close="modal-save-session">キャンセル</button>
+          <button id="btn-confirm-save-session" class="btn btn-success">履歴に保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= モーダル4: エクスポート & 共有 ================= -->
+    <div id="modal-export" class="modal-backdrop">
+      <div class="modal-dialog" style="max-width:540px;">
+        <div class="modal-header">
+          <h3 id="export-modal-title" class="modal-title">記録のエクスポート & 共有</h3>
+          <button class="modal-close" data-close="modal-export">&times;</button>
+        </div>
+        <div class="modal-body">
+          <!-- フォーマット選択タブ -->
+          <div style="display:flex; gap:8px; margin-bottom:4px;">
+            <button id="tab-fmt-text" class="btn btn-primary" style="flex:1; font-size:0.85rem; padding:8px;">テキスト (.txt)</button>
+            <button id="tab-fmt-csv" class="btn btn-secondary" style="flex:1; font-size:0.85rem; padding:8px;">CSV (.csv / Excel)</button>
+          </div>
+
+          <!-- プレビュー表示 -->
+          <pre id="export-preview-content" class="export-preview-box"></pre>
+
+          <!-- 共有アクション -->
+          <div class="export-options-grid">
+            <button id="btn-action-share" class="export-option-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/>
+              </svg>
+              <span class="export-option-title">iOS 共有 (AirDrop / メモ)</span>
+              <span class="export-option-desc">標準シェアシートを開く</span>
+            </button>
+
+            <button id="btn-action-copy" class="export-option-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+              </svg>
+              <span class="export-option-title">クリップボードにコピー</span>
+              <span class="export-option-desc">テキストを即座にコピー</span>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-close="modal-export">閉じる</button>
+          <button id="btn-action-download" class="btn btn-primary">ファイル保存</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- メインスクリプト -->
+  <script type="module" src="js/app.js?v=2.4"></script>
+</body>
+</html>

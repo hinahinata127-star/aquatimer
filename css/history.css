@@ -1,0 +1,221 @@
+/* ===================================================
+   AquaTimer Pro - 履歴・データ画面スタイル (css/history.css)
+   =================================================== */
+
+.history-view-content {
+  padding: 16px;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-view-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.history-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* セッションカード */
+.session-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: var(--transition-fast);
+}
+
+.session-card:hover {
+  border-color: var(--border-focus);
+}
+
+.session-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.session-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.session-date {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.session-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.session-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.session-meta-item strong {
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+}
+
+/* セッション内レーンプレビューチップ */
+.session-lanes-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lane-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lane-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.lane-pill-time {
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
+}
+
+/* セッションカードアクション */
+.session-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 10px;
+}
+
+.session-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 空状態 (Empty state) */
+.history-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  text-align: center;
+}
+
+.history-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(0, 240, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+}
+
+.history-empty-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.history-empty-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+/* エクスポートモーダル専用スタイル */
+.export-preview-box {
+  background: #020712;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #a5f3fc;
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre;
+}
+
+.export-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.export-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  color: var(--text-primary);
+  gap: 6px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.export-option-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+}
+
+.export-option-btn svg {
+  width: 28px;
+  height: 28px;
+  color: var(--accent-cyan);
+}
+
+.export-option-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.export-option-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
