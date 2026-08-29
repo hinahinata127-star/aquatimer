@@ -91,12 +91,12 @@ html, body {
   position: relative;
 }
 
-/* アプリヘッダー */
+/* アプリヘッダー (スリム化) */
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 6px 12px;
   background: var(--bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -107,28 +107,28 @@ html, body {
 .brand-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .brand-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 12px var(--accent-cyan-glow);
+  box-shadow: 0 0 8px var(--accent-cyan-glow);
 }
 
 .brand-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   fill: #05131e;
 }
 
 .brand-title {
-  font-size: 1.15rem;
+  font-size: 1.02rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   background: linear-gradient(90deg, #ffffff, #a5f3fc);
@@ -139,16 +139,16 @@ html, body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .icon-btn {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;

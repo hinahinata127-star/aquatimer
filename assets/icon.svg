@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#060d1a"/>
+      <stop offset="100%" stop-color="#0c182c"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#00a3ff"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="106" fill="none" stroke="#00f0ff" stroke-width="4" stroke-opacity="0.3"/>
+
+  <!-- ストップウォッチ外枠 -->
+  <circle cx="256" cy="280" r="150" fill="none" stroke="url(#cyanGrad)" stroke-width="18" filter="url(#glow)"/>
+  <circle cx="256" cy="280" r="120" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="4" stroke-dasharray="8 8"/>
+
+  <!-- トップボタン & リュウズ -->
+  <rect x="236" y="70" width="40" height="40" rx="8" fill="url(#cyanGrad)"/>
+  <path d="M216 70 H296 V82 H216 Z" fill="#ffffff" opacity="0.8"/>
+  <rect x="360" y="120" width="30" height="20" rx="6" fill="url(#greenGrad)" transform="rotate(35 375 130)"/>
+
+  <!-- 水泳の波 (ウェーブ) -->
+  <path d="M166 310 Q 211 285, 256 310 T 346 310" fill="none" stroke="#00f0ff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M186 340 Q 221 320, 256 340 T 326 340" fill="none" stroke="#10b981" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- スイマーシルエット (シンプル・スタイリッシュ) -->
+  <circle cx="210" cy="235" r="14" fill="#ffffff"/>
+  <path d="M225 240 Q 260 230, 310 250" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M245 235 L 285 210" fill="none" stroke="#00f0ff" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- 針 -->
+  <circle cx="256" cy="280" r="10" fill="#00f0ff"/>
+  <line x1="256" y1="280" x2="256" y2="175" stroke="#00f0ff" stroke-width="8" stroke-linecap="round"/>
+</svg>

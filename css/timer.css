@@ -1,53 +1,53 @@
 /* ===================================================
-   AquaTimer Pro - タイマー計測画面（縦割りマルチカラム）
+   AquaTimer Pro - タイマー計測画面（スマホ2レーン同時表示最適化）
    =================================================== */
 
-/* メインタイマー固定コントロール領域 */
+/* メインタイマー固定コントロール領域 (省スペース化) */
 .timer-header-panel {
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 10px 14px 8px;
+  padding: 6px 10px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   position: sticky;
   top: 0;
   z-index: 40;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .main-clock-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 0;
 }
 
 .clock-label {
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   color: var(--text-muted);
   text-transform: uppercase;
 }
 
 .main-digital-clock {
   font-family: var(--font-mono);
-  font-size: 2.3rem;
+  font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   line-height: 1;
   color: #ffffff;
-  text-shadow: 0 0 16px var(--accent-cyan-glow);
+  text-shadow: 0 0 14px var(--accent-cyan-glow);
   display: flex;
   align-items: baseline;
 }
 
 .main-digital-clock .centis {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: var(--accent-cyan);
   margin-left: 2px;
 }
@@ -57,156 +57,159 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  max-width: 540px;
+  max-width: 500px;
 }
 
 .main-btn {
   flex: 1;
-  height: 44px;
-  font-size: 0.95rem;
+  height: 38px;
+  font-size: 0.88rem;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   transition: var(--transition-fast);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .main-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .main-btn-start {
   background: linear-gradient(135deg, #10b981, #059669);
   color: #022015;
-  box-shadow: 0 4px 14px var(--accent-green-glow);
+  box-shadow: 0 2px 10px var(--accent-green-glow);
 }
 
 .main-btn-stop {
   background: linear-gradient(135deg, #f43f5e, #be123c);
   color: #ffffff;
-  box-shadow: 0 4px 14px var(--accent-rose-glow);
+  box-shadow: 0 2px 10px var(--accent-rose-glow);
 }
 
 .main-btn-lap-all {
   background: linear-gradient(135deg, #0ea5e9, #0284c7);
   color: #ffffff;
-  box-shadow: 0 4px 12px var(--accent-cyan-glow);
+  box-shadow: 0 2px 8px var(--accent-cyan-glow);
 }
 
 .main-btn-reset {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  flex: 0.55;
+  flex: 0.5;
 }
 
-/* レーン全体ヘッダー */
+/* レーン全体ツールバー */
 .lanes-top-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px 4px;
+  padding: 4px 8px 2px;
 }
 
 .lanes-summary-text {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .lanes-summary-badge {
   background: rgba(0, 240, 255, 0.15);
   color: var(--accent-cyan);
-  padding: 1px 7px;
-  border-radius: 10px;
-  font-size: 0.72rem;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-size: 0.68rem;
   font-weight: 800;
 }
 
 .toolbar-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .action-btn-sm {
   background: rgba(0, 240, 255, 0.12);
   border: 1px solid var(--border-subtle);
   color: var(--accent-cyan);
-  padding: 5px 12px;
-  border-radius: 8px;
-  font-size: 0.78rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .action-btn-sm:hover {
   background: rgba(0, 240, 255, 0.22);
-  border-color: var(--accent-cyan);
 }
 
 /* ===================================================
    縦割り（マルチカラム）レイアウトコンテナ
+   スマホ1画面に左右2レーンが収まる高密度設計
    =================================================== */
 .lanes-columns-container {
   display: flex;
-  gap: 12px;
-  padding: 6px 12px 85px;
+  gap: 6px;
+  padding: 4px 6px 85px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   align-items: flex-start;
-  min-height: calc(100vh - 210px);
+  min-height: calc(100vh - 180px);
 }
 
-/* レーン縦割りカラム */
+/* レーン縦割りカラム (スマホ幅で左右2列収まり) */
 .lane-column {
-  flex: 1 0 310px;
-  max-width: 480px;
+  flex: 1 1 calc(50% - 3px);
+  min-width: 155px;
+  max-width: calc(50% - 3px);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-top: 4px solid var(--lane-color, var(--accent-cyan));
+  border-top: 3px solid var(--lane-color, var(--accent-cyan));
 }
 
-/* 2レーン表示時のモバイル最適化（横幅に応じて2列収まり） */
+/* タブレット・PC向けレスポンシブ拡張 */
 @media (min-width: 680px) {
   .lane-column {
-    flex: 1 1 calc(50% - 12px);
+    flex: 1 1 calc(33.333% - 6px);
+    max-width: 320px;
   }
 }
 
 @media (min-width: 1040px) {
   .lane-column {
-    flex: 1 1 calc(33.333% - 12px);
+    flex: 1 1 calc(25% - 6px);
+    max-width: 300px;
   }
 }
 
-/* レーン縦割りヘッダー */
+/* レーン縦割りヘッダー (コンパクト化) */
 .lane-col-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 5px 6px;
   background: rgba(0, 0, 0, 0.35);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -214,48 +217,55 @@
 .lane-col-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .lane-badge-tag {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 6px;
+  padding: 1px 4px;
+  border-radius: 4px;
   background: var(--lane-color, #00f0ff);
   color: #000;
   letter-spacing: -0.2px;
+  flex-shrink: 0;
 }
 
 .lane-col-title {
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lane-swimmers-count {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   color: var(--text-muted);
+  display: none; /* スマホ幅では省スペースのため非表示 */
 }
 
 .lane-col-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .btn-add-swimmer-sm {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 5px;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .btn-add-swimmer-sm:hover {
@@ -268,141 +278,157 @@
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 2px;
+  display: flex;
+  align-items: center;
 }
 
 /* スイマーリストコンテナ */
 .swimmers-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  gap: 5px;
+  padding: 5px 4px;
 }
 
 /* ===================================================
-   スイマーカード (1画面で複数人同時に押せる高効率UI)
+   スイマーカード (スマホ2列並び対応・高密度＆高操作性)
    =================================================== */
 .swimmer-card {
-  background: rgba(8, 18, 36, 0.85);
+  background: rgba(8, 18, 36, 0.9);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 8px 10px;
+  border-radius: 8px;
+  padding: 5px 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   transition: var(--transition-fast);
   position: relative;
 }
 
 .swimmer-card.state-running {
-  border-color: rgba(0, 240, 255, 0.5);
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.55);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.12);
 }
 
 .swimmer-card.state-standby {
-  border-color: rgba(245, 158, 11, 0.5);
+  border-color: rgba(245, 158, 11, 0.55);
   animation: pulseStandby 1.5s infinite alternate;
 }
 
 .swimmer-card.state-stopped {
   opacity: 0.8;
-  border-color: rgba(244, 63, 94, 0.3);
+  border-color: rgba(244, 63, 94, 0.35);
 }
 
 .swimmer-card.flash-start {
   animation: flashGreen 0.6s ease-out;
 }
 
-/* スイマー上段情報 */
+@keyframes pulseStandby {
+  from { box-shadow: 0 0 4px rgba(245, 158, 11, 0.2); }
+  to { box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); }
+}
+
+@keyframes flashGreen {
+  0% { background-color: rgba(16, 185, 129, 0.4); }
+  100% { background-color: rgba(8, 18, 36, 0.9); }
+}
+
+/* スイマー上段情報 (コンパクト) */
 .swimmer-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 3px;
 }
 
 .swimmer-name-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
 .swimmer-order-badge {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: var(--text-secondary);
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: 0 3px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .swimmer-name {
-  font-size: 0.92rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 75px;
 }
 
 .swimmer-meta-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   flex-shrink: 0;
 }
 
 .swimmer-offset-tag {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary);
   cursor: pointer;
 }
 
 .swimmer-offset-tag.has-offset {
-  background: rgba(245, 158, 11, 0.18);
+  background: rgba(245, 158, 11, 0.2);
   color: var(--accent-amber);
 }
 
 .swimmer-status-tag {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: 0 3px;
+  border-radius: 3px;
   text-transform: uppercase;
 }
 
-/* スイマー中段: タイマー ＆ 最新LAP情報 */
+/* スイマー中段: タイマー ＆ 最新LAP */
 .swimmer-timer-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
+  padding: 1px 0;
 }
 
 .swimmer-digital-clock {
   font-family: var(--font-mono);
-  font-size: 1.55rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.5px;
   color: #ffffff;
-  line-height: 1.1;
+  line-height: 1;
   display: flex;
   align-items: baseline;
 }
 
 .swimmer-digital-clock.standby {
   color: var(--accent-amber);
-  font-size: 1.35rem;
+  font-size: 1.08rem;
 }
 
 .swimmer-digital-clock .centis {
-  font-size: 1.05rem;
+  font-size: 0.88rem;
   color: var(--accent-cyan);
-  margin-left: 2px;
+  margin-left: 1px;
 }
 
 .swimmer-digital-clock.standby .centis {
@@ -414,42 +440,48 @@
   flex-direction: column;
   align-items: flex-end;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   color: var(--text-secondary);
+  line-height: 1.1;
 }
 
 .swimmer-latest-lap-box strong {
   color: var(--accent-green);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
 }
 
-/* スイマー下段: 高速アクションボタン列 */
+/* スイマー下段: 高速アクションボタン列 (押しやすさを最優先) */
 .swimmer-actions-row {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: stretch;
 }
 
 .swimmer-btn-lap {
   flex: 3;
-  height: 42px;
+  height: 35px;
   background: linear-gradient(135deg, #10b981, #059669);
   color: #022015;
-  font-size: 0.98rem;
+  font-size: 0.88rem;
   font-weight: 800;
-  border-radius: 10px;
+  border-radius: 6px;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   cursor: pointer;
   transition: var(--transition-fast);
-  box-shadow: 0 2px 8px var(--accent-green-glow);
+  box-shadow: 0 1px 6px var(--accent-green-glow);
+}
+
+.swimmer-btn-lap svg {
+  width: 13px;
+  height: 13px;
 }
 
 .swimmer-btn-lap:active {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 .swimmer-btn-lap:disabled {
@@ -460,45 +492,46 @@
 }
 
 .swimmer-btn-stop {
-  flex: 1.2;
-  height: 42px;
+  flex: 1.1;
+  height: 35px;
   background: linear-gradient(135deg, #f43f5e, #e11d48);
   color: #ffffff;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  border-radius: 10px;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .swimmer-btn-resume {
-  flex: 1.2;
-  height: 42px;
+  flex: 1.1;
+  height: 35px;
   background: linear-gradient(135deg, #0ea5e9, #0284c7);
   color: #ffffff;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  border-radius: 10px;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
 }
 
 .swimmer-btn-accordion {
-  flex: 0.9;
-  height: 42px;
+  flex: 0.85;
+  height: 35px;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 0.7rem;
+  font-size: 0.58rem;
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 0;
+  padding: 0 2px;
 }
 
 .swimmer-btn-accordion.open {
@@ -507,16 +540,62 @@
   border-color: var(--accent-cyan);
 }
 
-/* スイマー内ラップ一覧アコーディオン */
+/* スイマー内ラップ一覧アコーディオン (超コンパクト) */
 .swimmer-laps-accordion {
   display: none;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 6px;
-  margin-top: 4px;
+  padding-top: 4px;
+  margin-top: 2px;
 }
 
 .swimmer-laps-accordion.show {
   display: flex;
+}
+
+.laps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+}
+
+.laps-table th {
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-align: right;
+  padding: 2px 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.laps-table th:first-child {
+  text-align: left;
+}
+
+.laps-table td {
+  padding: 2px 3px;
+  text-align: right;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.laps-table td:first-child {
+  text-align: left;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.laps-table tr.best-lap td {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.empty-laps-msg {
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding: 4px 0;
 }
