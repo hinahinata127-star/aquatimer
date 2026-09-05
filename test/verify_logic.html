@@ -68,7 +68,89 @@
     // 総ラップ数は3件
     assert('総ラップ数は3件保持されている', s1.laps.length === 3);
 
-    console.log('All cycle lap tests passed.');
+    // 2. レーン次泳者LAP切り替えテスト
+    const lm2 = new LaneManager();
+    const l1 = lm2.lanes[0];
+    const swimmer1 = l1.swimmers[0];
+    const swimmer2 = l1.swimmers[1];
+
+    lm2.onMainStart();
+    swimmer1.currentElapsed = 25000;
+    swimmer2.currentElapsed = 20000;
+
+    // 初期状態は選手1がターゲット
+    assert('初期状態のアクティブ泳者は選手1', lm2.getActiveSwimmer(l1.id).id === swimmer1.id);
+    assert('初期状態の次回泳者は選手2', lm2.getNextSwimmer(l1.id).id === swimmer2.id);
+
+    // 1回目のレーンLAP打刻 ➔ 選手1が記録され、次は選手2へ切り替わる
+    const res1 = lm2.recordLaneNextLap(l1.id);
+    assert('1回目打刻: 記録されたのは選手1', res1.swimmer.id === swimmer1.id);
+    assert('1回目打刻後: 現在のアクティブ泳者は選手2に自動切り替え', lm2.getActiveSwimmer(l1.id).id === swimmer2.id);
+    assert('1回目打刻後: 次回プレビューは選手1へループ', lm2.getNextSwimmer(l1.id).id === swimmer1.id);
+    assert('選手1のラップ数が1件', swimmer1.laps.length === 1);
+    assert('選手2のラップ数はまだ0件', swimmer2.laps.length === 0);
+
+    // 2回目のレーンLAP打刻 ➔ 選手2が記録され、次は選手1へ戻る
+    const res2 = lm2.recordLaneNextLap(l1.id);
+    assert('2回目打刻: 記録されたのは選手2', res2.swimmer.id === swimmer2.id);
+    assert('2回目打刻後: 現在のアクティブ泳者は選手1に戻る', lm2.getActiveSwimmer(l1.id).id === swimmer1.id);
+    assert('選手2のラップ数が1件', swimmer2.laps.length === 1);
+
+    // 手動で選手2を指定
+    lm2.setActiveSwimmer(l1.id, swimmer2.id);
+    assert('手動指定後: アクティブ泳者が選手2に変更される', lm2.getActiveSwimmer(l1.id).id === swimmer2.id);
+
+    // スキップ機能のテスト
+    lm2.onMainStart();
+    assert('スキップ前: アクティブは選手1', lm2.getActiveSwimmer(l1.id).id === swimmer1.id);
+    const skipRes = lm2.skipSwimmer(l1.id, swimmer1.id);
+    assert('スキップ実行: スキップされたのは選手1', skipRes.skippedSwimmer.id === swimmer1.id);
+    assert('スキップ後: アクティブは選手2に移行', lm2.getActiveSwimmer(l1.id).id === swimmer2.id);
+    assert('スキップされた選手1のラップは増えていない(0件)', swimmer1.laps.length === 0);
+
+    // リセット時
+    swimmer1.cycleNumber = 5;
+    lm2.resetAll();
+    assert('リセット後: アクティブ泳者が先頭の選手1に戻る', lm2.getActiveSwimmer(l1.id).id === swimmer1.id);
+    assert('リセット後: 選手のcycleNumber(本数)が1に戻る', swimmer1.cycleNumber === 1);
+
+    // 3. 本数(#)別 ＆ 1本中改行エクスポートのテスト
+    import('../js/exporter.js').then(({ Exporter }) => {
+      const testSession = {
+        title: 'テスト計測',
+        createdAt: new Date().toISOString(),
+        totalElapsed: 60000,
+        totalSwimmers: 1,
+        lanes: [{
+          laneNumber: 1,
+          name: '第1レーン',
+          swimmers: [{
+            order: 1,
+            name: 'テスト選手',
+            offsetSeconds: 0,
+            finalTime: 60000,
+            bestLap: 15000,
+            avgLap: 15000,
+            laps: [
+              { lapNumber: 1, cycleNumber: 1, cycleLapNumber: 1, lapTime: 15000, splitTime: 15000 },
+              { lapNumber: 2, cycleNumber: 1, cycleLapNumber: 2, lapTime: 15000, splitTime: 30000 },
+              { lapNumber: 3, cycleNumber: 2, cycleLapNumber: 1, lapTime: 14500, splitTime: 14500 }
+            ]
+          }]
+        }]
+      };
+
+      const txt = Exporter.generateTextFormat(testSession);
+      assert('テキスト出力に #1 が含まれる', txt.includes('#1 (本数Goal:'));
+      assert('テキスト出力に #2 が含まれる', txt.includes('#2 (本数Goal:'));
+      assert('テキスト出力の1本目内に L1 と L2 が改行で含まれる', txt.includes('- L1:') && txt.includes('- L2:'));
+
+      const csv = Exporter.generateCsvFormat(testSession);
+      assert('CSV出力に #1 カラムが含まれる', csv.includes('"#1"'));
+      assert('CSV出力に #2 カラムが含まれる', csv.includes('"#2"'));
+
+      console.log('All tests finished successfully.');
+    });
   </script>
 </body>
 </html>

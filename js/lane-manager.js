@@ -28,6 +28,7 @@ export class LaneManager {
         laneNumber: 1,
         name: '第1レーン',
         color: laneColors[0],
+        activeSwimmerIndex: 0,
         swimmers: [
           this._createSwimmer(1, '選手 A1', 0),
           this._createSwimmer(2, '選手 A2', 5)
@@ -38,6 +39,7 @@ export class LaneManager {
         laneNumber: 2,
         name: '第2レーン',
         color: laneColors[1],
+        activeSwimmerIndex: 0,
         swimmers: [
           this._createSwimmer(1, '選手 B1', 0),
           this._createSwimmer(2, '選手 B2', 5)
@@ -93,6 +95,7 @@ export class LaneManager {
       laneNumber,
       name: name || `第${laneNumber}レーン`,
       color,
+      activeSwimmerIndex: 0,
       swimmers: [
         this._createSwimmer(1, `選手 ${laneNumber}-1`, 0),
         this._createSwimmer(2, `選手 ${laneNumber}-2`, 5)
@@ -155,6 +158,9 @@ export class LaneManager {
     lane.swimmers.forEach((s, idx) => {
       s.order = idx + 1;
     });
+    if (lane.activeSwimmerIndex >= lane.swimmers.length) {
+      lane.activeSwimmerIndex = Math.max(0, lane.swimmers.length - 1);
+    }
   }
 
   /**
@@ -225,6 +231,7 @@ export class LaneManager {
     const nowDate = Date.now();
 
     this.lanes.forEach(lane => {
+      lane.activeSwimmerIndex = 0; // スタート時は先頭泳者へリセット
       let accumulatedOffsetMs = 0;
       lane.swimmers.forEach(swimmer => {
         accumulatedOffsetMs += swimmer.offsetSeconds * 1000;
@@ -236,6 +243,7 @@ export class LaneManager {
           swimmer.startDate = nowDate;
           swimmer.pausedElapsed = 0;
           swimmer.currentElapsed = 0;
+          swimmer.cycleNumber = 1;
           this.justStartedSwimmers.add(swimmer.id);
         } else {
           // 個別スタンバイ開始
@@ -244,6 +252,7 @@ export class LaneManager {
           swimmer.standbyDurationMs = accumulatedOffsetMs;
           swimmer.pausedElapsed = 0;
           swimmer.currentElapsed = 0;
+          swimmer.cycleNumber = 1;
         }
         swimmer.laps = [];
       });
@@ -354,6 +363,104 @@ export class LaneManager {
   }
 
   /**
+   * レーンの現在LAP対象スイマーを取得
+   */
+  getActiveSwimmer(laneId) {
+    const lane = this.lanes.find(l => l.id === laneId);
+    if (!lane || lane.swimmers.length === 0) return null;
+    const idx = (lane.activeSwimmerIndex !== undefined && lane.activeSwimmerIndex >= 0 && lane.activeSwimmerIndex < lane.swimmers.length)
+      ? lane.activeSwimmerIndex
+      : 0;
+    lane.activeSwimmerIndex = idx;
+    return lane.swimmers[idx];
+  }
+
+  /**
+   * レーンの次回LAP対象スイマーを取得 (プレビュー用)
+   */
+  getNextSwimmer(laneId) {
+    const lane = this.lanes.find(l => l.id === laneId);
+    if (!lane || lane.swimmers.length <= 1) return null;
+    const currentIdx = (lane.activeSwimmerIndex !== undefined && lane.activeSwimmerIndex >= 0 && lane.activeSwimmerIndex < lane.swimmers.length)
+      ? lane.activeSwimmerIndex
+      : 0;
+    const nextIdx = (currentIdx + 1) % lane.swimmers.length;
+    return lane.swimmers[nextIdx];
+  }
+
+  /**
+   * レーンのLAP対象スイマーを手動変更
+   */
+  setActiveSwimmer(laneId, swimmerId) {
+    const lane = this.lanes.find(l => l.id === laneId);
+    if (!lane) return null;
+    const idx = lane.swimmers.findIndex(s => s.id === swimmerId);
+    if (idx !== -1) {
+      lane.activeSwimmerIndex = idx;
+      return lane.swimmers[idx];
+    }
+    return null;
+  }
+
+  /**
+   * レーンの次泳者LAPを一発打刻し、自動で次の泳者へ切り替える
+   * @param {string} laneId レーンID
+   * @returns {{ swimmer: Object, lap: Object, nextSwimmer: Object, lane: Object } | null}
+   */
+  recordLaneNextLap(laneId) {
+    const lane = this.lanes.find(l => l.id === laneId);
+    if (!lane || lane.swimmers.length === 0) return null;
+
+    const currentIdx = (lane.activeSwimmerIndex !== undefined && lane.activeSwimmerIndex >= 0 && lane.activeSwimmerIndex < lane.swimmers.length)
+      ? lane.activeSwimmerIndex
+      : 0;
+    
+    const targetSwimmer = lane.swimmers[currentIdx];
+    if (!targetSwimmer) return null;
+
+    // 対象スイマーのラップを記録
+    const lap = this.recordSwimmerLap(laneId, targetSwimmer.id);
+    if (!lap) return null;
+
+    // 次の泳者へインデックスを進める (最後の泳者の次は1人目へループ)
+    const nextIdx = (currentIdx + 1) % lane.swimmers.length;
+    lane.activeSwimmerIndex = nextIdx;
+    const nextSwimmer = lane.swimmers[nextIdx];
+
+    return {
+      swimmer: targetSwimmer,
+      lap,
+      nextSwimmer,
+      lane
+    };
+  }
+
+  /**
+   * 指定したスイマーをスキップして次の泳者にターゲットを進める
+   * @param {string} laneId レーンID
+   * @param {string} swimmerId スキップ対象のスイマーID
+   * @returns {{ skippedSwimmer: Object, nextSwimmer: Object, lane: Object } | null}
+   */
+  skipSwimmer(laneId, swimmerId) {
+    const lane = this.lanes.find(l => l.id === laneId);
+    if (!lane || lane.swimmers.length === 0) return null;
+
+    const idx = lane.swimmers.findIndex(s => s.id === swimmerId);
+    if (idx === -1) return null;
+
+    const skippedSwimmer = lane.swimmers[idx];
+    const nextIdx = (idx + 1) % lane.swimmers.length;
+    lane.activeSwimmerIndex = nextIdx;
+    const nextSwimmer = lane.swimmers[nextIdx];
+
+    return {
+      skippedSwimmer,
+      nextSwimmer,
+      lane
+    };
+  }
+
+  /**
    * 全員のLAPを一括打刻
    */
   recordAllLaps() {
@@ -432,6 +539,7 @@ export class LaneManager {
     const nowDate = Date.now();
 
     this.lanes.forEach(lane => {
+      lane.activeSwimmerIndex = 0; // サイクル時も先頭泳者へリセット
       let accumulatedOffsetMs = 0;
       lane.swimmers.forEach(swimmer => {
         accumulatedOffsetMs += swimmer.offsetSeconds * 1000;
@@ -462,6 +570,7 @@ export class LaneManager {
    */
   resetAll() {
     this.lanes.forEach(lane => {
+      lane.activeSwimmerIndex = 0;
       lane.swimmers.forEach(swimmer => {
         swimmer.state = 'IDLE';
         swimmer.startTimePerf = 0;
@@ -470,6 +579,7 @@ export class LaneManager {
         swimmer.currentElapsed = 0;
         swimmer.standbyStartTimePerf = 0;
         swimmer.standbyDurationMs = 0;
+        swimmer.cycleNumber = 1;
         swimmer.laps = [];
       });
     });
@@ -567,6 +677,7 @@ export class LaneManager {
       laneNumber: lData.laneNumber || (lIdx + 1),
       name: lData.name || `第${lIdx + 1}レーン`,
       color: lData.color || { bg: 'linear-gradient(135deg, #00f0ff, #0284c7)', text: '#000' },
+      activeSwimmerIndex: 0,
       swimmers: Array.isArray(lData.swimmers) ? lData.swimmers.map((sData, sIdx) => {
         return this._createSwimmer(
           sData.order || (sIdx + 1),

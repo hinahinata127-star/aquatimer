@@ -41,12 +41,28 @@ export class Exporter {
         }
 
         if (swimmer.laps && swimmer.laps.length > 0) {
-          lines.push('    No. | 区間タイム (Lap) | 累積タイム (Split)');
+          lines.push('    --- 本数別LAPタイム一覧 ---');
+          
+          // 本数（cycleNumber）ごとにグループ化
+          const cycleMap = new Map();
           swimmer.laps.forEach(l => {
-            const numStr = String(l.lapNumber).padStart(3, ' ');
-            const lapStr = TimerEngine.formatTime(l.lapTime).padStart(8, ' ');
-            const splitStr = TimerEngine.formatTime(l.splitTime).padStart(8, ' ');
-            lines.push(`    #${numStr} | ${lapStr} | ${splitStr}`);
+            const cNum = l.cycleNumber || 1;
+            if (!cycleMap.has(cNum)) cycleMap.set(cNum, []);
+            cycleMap.get(cNum).push(l);
+          });
+
+          // 本数順（1本目、2本目...）に出力
+          const cycleKeys = Array.from(cycleMap.keys()).sort((a, b) => a - b);
+          cycleKeys.forEach(cNum => {
+            const lapsInC = cycleMap.get(cNum);
+            const finalLap = lapsInC[lapsInC.length - 1];
+            lines.push(`    #${cNum} (本数Goal: ${TimerEngine.formatTime(finalLap.splitTime)})`);
+            lapsInC.forEach((l, idx) => {
+              const label = lapsInC.length > 1 ? `L${idx + 1}` : 'LAP';
+              const lapStr = TimerEngine.formatTime(l.lapTime);
+              const splitStr = TimerEngine.formatTime(l.splitTime);
+              lines.push(`      - ${label}: ${lapStr} (累 ${splitStr})`);
+            });
           });
         } else {
           lines.push('    (ラップ記録なし)');
@@ -72,7 +88,9 @@ export class Exporter {
       '泳順', 
       '選手名', 
       '時間差(秒)', 
-      'Lap番号', 
+      '本数(#)', 
+      '本数内Lap', 
+      '通しLap番号', 
       '区間タイム(Lap)', 
       '累積タイム(Split)', 
       '区間ミリ秒', 
@@ -90,6 +108,8 @@ export class Exporter {
               swimmer.order,
               `"${swimmer.name.replace(/"/g, '""')}"`,
               swimmer.offsetSeconds,
+              `#${l.cycleNumber || 1}`,
+              l.cycleLapNumber || 1,
               l.lapNumber,
               TimerEngine.formatTime(l.lapTime),
               TimerEngine.formatTime(l.splitTime),
@@ -104,6 +124,8 @@ export class Exporter {
             swimmer.order,
             `"${swimmer.name.replace(/"/g, '""')}"`,
             swimmer.offsetSeconds,
+            '#1',
+            '-',
             '-',
             '-',
             TimerEngine.formatTime(swimmer.finalTime),

@@ -1,43 +1,132 @@
-/* 一括コントロール固定バー (超スリム化) */
+/* 一括コントロール固定バー (スリム化・上部固定) */
 .timer-header-panel {
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 5px 8px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   position: sticky;
   top: 0;
   z-index: 40;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* サイクル情報 ＆ 操作バー */
-.cycle-status-bar {
+/* 一括操作ボタングループ */
+.main-controls-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   width: 100%;
-  max-width: 500px;
+  max-width: 520px;
 }
 
+/* 一括操作メインボタン (統一デザイン) */
+.main-btn {
+  flex: 1;
+  height: 36px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
+  transition: var(--transition-fast);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.main-btn:active {
+  transform: scale(0.96);
+}
+
+.main-btn svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+/* 一斉スタート / 再開 */
+.main-btn-start {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #022015;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px var(--accent-green-glow);
+}
+
+.main-btn-start:hover {
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 3px 12px var(--accent-green-glow);
+}
+
+/* 全停止 */
+.main-btn-stop {
+  background: linear-gradient(135deg, #f43f5e, #be123c);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px var(--accent-rose-glow);
+}
+
+.main-btn-stop:hover {
+  background: linear-gradient(135deg, #fb7185, #be123c);
+  box-shadow: 0 3px 12px var(--accent-rose-glow);
+}
+
+/* 全員LAP */
+.main-btn-lap-all {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px var(--accent-cyan-glow);
+}
+
+.main-btn-lap-all:hover {
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+  box-shadow: 0 3px 12px var(--accent-cyan-glow);
+}
+
+/* リセットボタン */
+.main-btn-reset {
+  flex: 0.85;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.main-btn-reset:hover {
+  background: rgba(244, 63, 94, 0.18);
+  border-color: rgba(244, 63, 94, 0.45);
+  color: #ff8095;
+}
+
+/* サイクル設定ボタン (統一デザイン) */
 .cycle-pill-btn {
+  height: 36px;
   background: rgba(0, 240, 255, 0.1);
   border: 1px solid var(--border-subtle);
   color: var(--accent-cyan);
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   transition: var(--transition-fast);
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .cycle-pill-btn:hover {
@@ -45,13 +134,18 @@
   border-color: var(--accent-cyan);
 }
 
+.cycle-pill-btn:active {
+  transform: scale(0.96);
+}
+
+/* サイクル進行中バー */
 .cycle-progress-wrap {
   display: flex;
   align-items: center;
   gap: 5px;
   background: rgba(0, 0, 0, 0.3);
   padding: 2px 6px;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -87,66 +181,17 @@
   background: var(--accent-cyan);
   color: #000;
 }
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  max-width: 500px;
-}
 
-.main-btn {
-  flex: 1;
-  height: 38px;
-  font-size: 0.88rem;
-  font-weight: 700;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  transition: var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.main-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.main-btn-start {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: #022015;
-  box-shadow: 0 2px 10px var(--accent-green-glow);
-}
-
-.main-btn-stop {
-  background: linear-gradient(135deg, #f43f5e, #be123c);
-  color: #ffffff;
-  box-shadow: 0 2px 10px var(--accent-rose-glow);
-}
-
-.main-btn-lap-all {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  color: #ffffff;
-  box-shadow: 0 2px 8px var(--accent-cyan-glow);
-}
-
-.main-btn-reset {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  flex: 0.5;
-}
-
-/* レーン全体ツールバー */
+/* レーン全体ツールバー (上部固定) */
 .lanes-top-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px 2px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 20;
 }
 
 .lanes-summary-text {
@@ -193,23 +238,27 @@
 
 /* ===================================================
    縦割り（マルチカラム）レイアウトコンテナ
-   スマホ1画面に左右2レーンが収まる高密度設計
+   親の高さいっぱいに広がり、横スクロールのみ許可
    =================================================== */
 .lanes-columns-container {
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   gap: 6px;
-  padding: 4px 6px 85px;
+  padding: 4px 6px 6px;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  align-items: flex-start;
-  min-height: calc(100vh - 180px);
+  align-items: stretch;
 }
 
-/* レーン縦割りカラム (スマホ幅で左右2列収まり) */
+/* レーン縦割りカラム (親の高さいっぱいに固定・内部のみ縦スクロール) */
 .lane-column {
   flex: 1 1 calc(50% - 3px);
   min-width: 155px;
   max-width: calc(50% - 3px);
+  height: 100%;
+  min-height: 0;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -237,14 +286,16 @@
   }
 }
 
-/* レーン縦割りヘッダー (コンパクト化) */
+/* レーン縦割りヘッダー (常時固定・絶対スクロールしない) */
 .lane-col-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 5px 6px;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(6, 13, 26, 0.96);
   border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 .lane-col-header-left {
@@ -316,56 +367,175 @@
   align-items: center;
 }
 
-/* スイマーリストコンテナ */
+/* ===================================================
+   ★ レーン専用 次泳者LAPボタン (常時上部固定・絶対スクロールしない) ★
+   =================================================== */
+.lane-quick-lap-wrap {
+  padding: 6px 6px 4px;
+  background: rgba(6, 13, 26, 0.96);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.lane-btn-quick-lap {
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #022015;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9px;
+  padding: 5px 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lane-btn-quick-lap:hover:not(:disabled) {
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+  transform: translateY(-1px);
+}
+
+.lane-btn-quick-lap:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.4);
+}
+
+.lane-btn-quick-lap:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.lap-btn-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.lap-btn-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.lap-btn-icon-tag {
+  background: #022015;
+  color: #34d399;
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.lane-btn-quick-lap:disabled .lap-btn-icon-tag {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.lap-target-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #022015;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.lane-btn-quick-lap:disabled .lap-target-name {
+  color: var(--text-secondary);
+}
+
+.lap-btn-right {
+  display: flex;
+  align-items: center;
+}
+
+.lap-next-hint {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: rgba(2, 32, 21, 0.8);
+  background: rgba(255, 255, 255, 0.25);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.lane-btn-quick-lap:disabled .lap-next-hint {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ★ スイマーリストコンテナ (LAPボタンの下のエリアのみが滑らかに縦スクロール！) ★ */
 .swimmers-list {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 5px 4px;
+  padding: 6px 4px 30px;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 240, 255, 0.25) transparent;
 }
 
-/* ===================================================
-   スイマーカード (スマホ2列並び対応・高密度＆高操作性)
-   =================================================== */
-.swimmer-card {
-  background: rgba(8, 18, 36, 0.9);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 5px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: var(--transition-fast);
-  position: relative;
+.swimmers-list::-webkit-scrollbar {
+  width: 4px;
 }
 
-.swimmer-card.state-running {
-  border-color: rgba(0, 240, 255, 0.55);
-  box-shadow: 0 0 8px rgba(0, 240, 255, 0.12);
+.swimmers-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.swimmer-card.state-standby {
-  border-color: rgba(245, 158, 11, 0.55);
-  animation: pulseStandby 1.5s infinite alternate;
+.swimmers-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.25);
+  border-radius: 4px;
 }
 
-.swimmer-card.state-stopped {
-  opacity: 0.8;
-  border-color: rgba(244, 63, 94, 0.35);
+.swimmers-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.5);
 }
 
-.swimmer-card.flash-start {
-  animation: flashGreen 0.6s ease-out;
+/* ★ ターゲットバッジ (NEXT LAP) ★ */
+.swimmer-target-badge {
+  font-size: 0.58rem;
+  font-weight: 800;
+  background: var(--accent-green);
+  color: #022015;
+  padding: 1px 4px;
+  border-radius: 4px;
+  display: none;
+  animation: pulseTarget 1.2s infinite alternate;
 }
 
-@keyframes pulseStandby {
-  from { box-shadow: 0 0 4px rgba(245, 158, 11, 0.2); }
-  to { box-shadow: 0 0 12px rgba(245, 158, 11, 0.5); }
+.swimmer-card.is-active-target .swimmer-target-badge {
+  display: inline-flex;
+  align-items: center;
 }
 
-@keyframes flashGreen {
-  0% { background-color: rgba(16, 185, 129, 0.4); }
-  100% { background-color: rgba(8, 18, 36, 0.9); }
+@keyframes pulseTarget {
+  from { opacity: 0.85; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1.04); }
 }
 
 /* スイマー上段情報 (コンパクト) */
@@ -524,47 +694,59 @@
   cursor: not-allowed;
 }
 
-.swimmer-btn-stop {
-  flex: 1.1;
-  height: 35px;
-  background: linear-gradient(135deg, #f43f5e, #e11d48);
-  color: #ffffff;
+.swimmer-btn-skip {
+  flex: 1;
+  height: 32px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fef3c7;
   font-size: 0.68rem;
   font-weight: 700;
   border-radius: 6px;
-  border: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   transition: var(--transition-fast);
 }
 
-.swimmer-btn-resume {
-  flex: 1.1;
-  height: 35px;
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+.swimmer-btn-skip:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: var(--accent-amber);
   color: #ffffff;
-  font-size: 0.68rem;
-  font-weight: 700;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
+}
+
+.swimmer-btn-skip:active {
+  transform: scale(0.95);
+}
+
+.btn-skip-icon {
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 .swimmer-btn-accordion {
-  flex: 0.85;
-  height: 35px;
+  flex: 1.2;
+  height: 32px;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   font-weight: 600;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  padding: 0 2px;
+  gap: 2px;
+  padding: 0 4px;
+  transition: var(--transition-fast);
+}
+
+.swimmer-btn-accordion:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 .swimmer-btn-accordion.open {
@@ -587,48 +769,135 @@
   display: flex;
 }
 
-.laps-table {
+/* ===================================================
+   ★ 本数別 ＆ 1本中LAP改行表示テーブル ★
+   =================================================== */
+.laps-cycle-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-family: var(--font-mono);
+  margin-top: 3px;
 }
 
-.laps-table th {
+.laps-cycle-table th {
   font-family: var(--font-sans);
   color: var(--text-muted);
-  font-size: 0.55rem;
-  font-weight: 600;
-  text-align: right;
-  padding: 2px 3px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.laps-table th:first-child {
-  text-align: left;
-}
-
-.laps-table td {
-  padding: 2px 3px;
-  text-align: right;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.laps-table td:first-child {
-  text-align: left;
+  font-size: 0.58rem;
   font-weight: 700;
-  color: var(--accent-cyan);
+  padding: 3px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
 }
 
-.laps-table tr.best-lap td {
-  background: rgba(16, 185, 129, 0.12);
+.cycle-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.15s ease;
+}
+
+.cycle-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cycle-row:hover {
+  background: rgba(0, 240, 255, 0.05);
+}
+
+.cycle-num-cell {
+  padding: 4px 2px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.cycle-num-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-block;
+  letter-spacing: -0.2px;
+}
+
+.cycle-laps-cell {
+  padding: 4px 4px;
+  vertical-align: middle;
+}
+
+.cycle-laps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lap-item-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.25;
+  font-size: 0.66rem;
+}
+
+.lap-item-line.is-best-lap {
   color: var(--accent-green);
   font-weight: 700;
+}
+
+.lap-item-num {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+  min-width: 22px;
+}
+
+.lap-item-time {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.lap-item-line.is-best-lap .lap-item-time {
+  color: var(--accent-green);
+}
+
+.lap-item-split {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lap-crown-icon {
+  font-size: 0.65rem;
+  margin-left: 2px;
+}
+
+.cycle-final-cell {
+  padding: 4px 4px;
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.cycle-final-label {
+  display: block;
+  font-size: 0.52rem;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  line-height: 1;
+}
+
+.cycle-final-time {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #a5f3fc;
+  display: block;
 }
 
 .empty-laps-msg {
   text-align: center;
   font-size: 0.65rem;
   color: var(--text-muted);
-  padding: 4px 0;
+  padding: 6px 0;
 }

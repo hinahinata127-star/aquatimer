@@ -416,6 +416,9 @@ class AquaTimerApp {
     this.timer.reset();
     this.laneManager.resetAll();
     this.updateMainControlsUI('IDLE');
+    if (this.currentCycleSeconds > 0) {
+      this.updateCycleProgress(0, 1);
+    }
     this.renderLanes();
     this.showToast('全タイマーをリセットしました');
   }
@@ -568,13 +571,22 @@ class AquaTimerApp {
    */
   updateSwimmersTimeDisplay() {
     const isMainRunning = this.timer.state === 'RUNNING';
+    const isTimerActive = this.timer.state === 'RUNNING' || this.timer.state === 'PAUSED';
 
     this.laneManager.lanes.forEach(lane => {
+      const hasSwimmers = lane.swimmers.length > 0;
+      const isAnyActive = lane.swimmers.some(s => s.state === 'RUNNING' || s.state === 'STOPPED');
+      const laneLapDisabled = !hasSwimmers || (!isTimerActive && !isAnyActive);
+
+      const laneLapBtn = document.getElementById(`lane-quick-lap-btn-${lane.id}`);
+      if (laneLapBtn) {
+        laneLapBtn.disabled = laneLapDisabled;
+      }
+
       lane.swimmers.forEach(swimmer => {
         const timeElem = document.getElementById(`swimmer-clock-${swimmer.id}`);
         const statusElem = document.getElementById(`swimmer-status-${swimmer.id}`);
         const cardElem = document.getElementById(`swimmer-card-${swimmer.id}`);
-        const btnLap = cardElem ? cardElem.querySelector('.swimmer-btn-lap') : null;
         if (!timeElem) return;
 
         if (swimmer.state === 'STANDBY') {
@@ -585,8 +597,7 @@ class AquaTimerApp {
             statusElem.className = 'swimmer-status-tag status-badge-standby';
             statusElem.textContent = '待機中';
           }
-          if (cardElem) cardElem.className = `swimmer-card state-standby ${swimmer.isExpanded ? 'expanded' : ''}`;
-          if (btnLap) btnLap.disabled = !isMainRunning;
+          if (cardElem) cardElem.className = `swimmer-card state-standby ${swimmer.isExpanded ? 'expanded' : ''} ${cardElem.classList.contains('is-active-target') ? 'is-active-target' : ''}`;
         } else if (swimmer.state === 'RUNNING') {
           timeElem.className = 'swimmer-digital-clock';
           const formatted = TimerEngine.formatTime(swimmer.currentElapsed);
@@ -596,8 +607,7 @@ class AquaTimerApp {
             statusElem.className = 'swimmer-status-tag status-badge-running';
             statusElem.textContent = '計測中';
           }
-          if (cardElem) cardElem.className = `swimmer-card state-running ${swimmer.isExpanded ? 'expanded' : ''}`;
-          if (btnLap) btnLap.disabled = false;
+          if (cardElem) cardElem.className = `swimmer-card state-running ${swimmer.isExpanded ? 'expanded' : ''} ${cardElem.classList.contains('is-active-target') ? 'is-active-target' : ''}`;
         } else if (swimmer.state === 'STOPPED') {
           timeElem.className = 'swimmer-digital-clock';
           const formatted = TimerEngine.formatTime(swimmer.currentElapsed);
@@ -607,8 +617,7 @@ class AquaTimerApp {
             statusElem.className = 'swimmer-status-tag status-badge-stopped';
             statusElem.textContent = '停止';
           }
-          if (cardElem) cardElem.className = `swimmer-card state-stopped ${swimmer.isExpanded ? 'expanded' : ''}`;
-          if (btnLap) btnLap.disabled = false;
+          if (cardElem) cardElem.className = `swimmer-card state-stopped ${swimmer.isExpanded ? 'expanded' : ''} ${cardElem.classList.contains('is-active-target') ? 'is-active-target' : ''}`;
         } else {
           // IDLE
           timeElem.className = 'swimmer-digital-clock';
@@ -617,8 +626,7 @@ class AquaTimerApp {
             statusElem.className = 'swimmer-status-tag status-badge-idle';
             statusElem.textContent = '待機';
           }
-          if (cardElem) cardElem.className = `swimmer-card state-idle ${swimmer.isExpanded ? 'expanded' : ''}`;
-          if (btnLap) btnLap.disabled = true;
+          if (cardElem) cardElem.className = `swimmer-card state-idle ${swimmer.isExpanded ? 'expanded' : ''} ${cardElem.classList.contains('is-active-target') ? 'is-active-target' : ''}`;
         }
       });
     });
@@ -647,11 +655,18 @@ class AquaTimerApp {
     const isTimerActive = this.timer.state === 'RUNNING' || this.timer.state === 'PAUSED';
 
     container.innerHTML = this.laneManager.lanes.map(lane => {
+      const activeSwimmer = this.laneManager.getActiveSwimmer(lane.id);
+      const nextSwimmer = this.laneManager.getNextSwimmer(lane.id);
+      const hasSwimmers = lane.swimmers.length > 0;
+      const isAnySwimmerActive = lane.swimmers.some(s => s.state === 'RUNNING' || s.state === 'STOPPED');
+      const lapDisabled = !hasSwimmers || (!isTimerActive && !isAnySwimmerActive);
+
       // スイマーカード群のHTML
       const swimmersHtml = lane.swimmers.map(swimmer => {
         const isRunning = swimmer.state === 'RUNNING';
         const isStopped = swimmer.state === 'STOPPED';
         const isStandby = swimmer.state === 'STANDBY';
+        const isActiveTarget = activeSwimmer && activeSwimmer.id === swimmer.id;
 
         let stateClass = 'state-idle';
         let statusBadge = '<span id="swimmer-status-' + swimmer.id + '" class="swimmer-status-tag status-badge-idle">待機</span>';
@@ -670,6 +685,9 @@ class AquaTimerApp {
         const lapsCount = swimmer.laps.length;
         const latestLap = lapsCount > 0 ? swimmer.laps[lapsCount - 1] : null;
         const latestLapStr = latestLap ? TimerEngine.formatTime(latestLap.lapTime) : '--:--.--';
+        const cycleNum = latestLap ? (latestLap.cycleNumber || 1) : 1;
+        const cycleLapNum = latestLap ? (latestLap.cycleLapNumber || 1) : 1;
+        const latestLapLabel = latestLap ? `#${cycleNum} [L${cycleLapNum}]` : 'Lap 0';
 
         const offsetLabel = swimmer.offsetSeconds > 0 ? `+${swimmer.offsetSeconds}s` : '同時';
         const offsetClass = swimmer.offsetSeconds > 0 ? 'swimmer-offset-tag has-offset' : 'swimmer-offset-tag';
@@ -679,16 +697,16 @@ class AquaTimerApp {
         const mainTimePart = dotIndex !== -1 ? timeFormatted.substring(0, dotIndex) : timeFormatted;
         const centisPart = dotIndex !== -1 ? timeFormatted.substring(dotIndex) : '.00';
 
-        // LAPボタンの活性化: タイマー稼働中または選手が計測中/停止中なら常時押せる！
-        const lapDisabled = (!isTimerActive && !isRunning && !isStopped);
+        const targetCardClass = isActiveTarget ? 'is-active-target' : '';
 
         return `
-          <div id="swimmer-card-${swimmer.id}" class="swimmer-card ${stateClass}">
-            <!-- 上段: 選手名 & オフセット & ステータス -->
+          <div id="swimmer-card-${swimmer.id}" class="swimmer-card ${stateClass} ${targetCardClass}" data-action="select-active-swimmer" data-lane-id="${lane.id}" data-swimmer-id="${swimmer.id}">
+            <!-- 上段: 選手名 & オフセット & ステータス & ターゲットバッジ -->
             <div class="swimmer-header-row">
               <div class="swimmer-name-wrap">
                 <span class="swimmer-order-badge">#${swimmer.order}</span>
                 <span class="swimmer-name">${this.escapeHtml(swimmer.name)}</span>
+                <span class="swimmer-target-badge">🎯 NEXT</span>
               </div>
               <div class="swimmer-meta-wrap">
                 <span class="${offsetClass}" data-action="edit-swimmer" data-lane-id="${lane.id}" data-swimmer-id="${swimmer.id}">
@@ -709,37 +727,21 @@ class AquaTimerApp {
                 <span>${mainTimePart}</span><span class="centis">${centisPart}</span>
               </div>
               <div id="swimmer-lap-box-${swimmer.id}" class="swimmer-latest-lap-box">
-                <span class="swimmer-lap-label">Lap ${lapsCount}</span>
+                <span class="swimmer-lap-label">${latestLapLabel}</span>
                 <strong class="swimmer-lap-val">${latestLapStr}</strong>
               </div>
             </div>
 
-            <!-- 下段: 操作アクション (1画面で押しやすい大型LAPボタン) -->
+            <!-- 下段: 操作アクション (スキップ & ラップ履歴) -->
             <div class="swimmer-actions-row">
-              <button class="swimmer-btn-lap" data-action="swimmer-lap" data-lane-id="${lane.id}" data-swimmer-id="${swimmer.id}" ${lapDisabled ? 'disabled' : ''}>
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/>
-                </svg>
-                <span>LAP</span>
+              <button class="swimmer-btn-skip" data-action="swimmer-skip" data-lane-id="${lane.id}" data-swimmer-id="${swimmer.id}" title="この選手のLAPをパスして次の選手へ切り替え">
+                <span class="btn-skip-icon">⏭️</span>
+                <span>スキップ</span>
               </button>
 
-              ${isRunning ? `
-                <button class="swimmer-btn-stop" data-action="swimmer-stop" data-lane-id="${lane.id}" data-swimmer-id="${swimmer.id}">
-                  停止
-                </button>
-              ` : isStopped ? `
-                <button class="swimmer-btn-resume" data-action="swimmer-resume" data-lane-id="${lane.id}" data-swimmer-id="${swimmer.id}">
-                  再開
-                </button>
-              ` : `
-                <button class="swimmer-btn-stop" style="opacity:0.4;" disabled>
-                  停止
-                </button>
-              `}
-
               <button class="swimmer-btn-accordion ${swimmer.isExpanded ? 'open' : ''}" data-action="toggle-swimmer-accordion" data-lane-id="${lane.id}" data-swimmer-id="${swimmer.id}" title="ラップ履歴">
-                <span>履歴</span>
-                <span class="swimmer-acc-count" style="font-size:0.65rem; font-family:var(--font-mono);">(${lapsCount})</span>
+                <span>ラップ履歴</span>
+                <span class="swimmer-acc-count" style="font-size:0.65rem; font-family:var(--font-mono); margin-left:2px;">(${lapsCount})</span>
               </button>
             </div>
 
@@ -750,6 +752,12 @@ class AquaTimerApp {
           </div>
         `;
       }).join('');
+
+      // レーン専用 次泳者LAPボタン
+      const targetNameStr = activeSwimmer ? this.escapeHtml(activeSwimmer.name) : '選手なし';
+      const nextHintStr = nextSwimmer 
+        ? `次 ▶ #${nextSwimmer.order} ${this.escapeHtml(nextSwimmer.name)}`
+        : (lane.swimmers.length === 1 ? '1名のみ' : '選手未登録');
 
       return `
         <div class="lane-column" style="--lane-color: ${lane.color.bg};">
@@ -775,6 +783,21 @@ class AquaTimerApp {
             </div>
           </div>
 
+          <!-- ★ レーン専用 次泳者LAPボタン (押すと自動で次の泳者へ切り替え) ★ -->
+          <div class="lane-quick-lap-wrap">
+            <button id="lane-quick-lap-btn-${lane.id}" class="lane-btn-quick-lap" data-action="lane-quick-lap" data-lane-id="${lane.id}" ${lapDisabled ? 'disabled' : ''}>
+              <div class="lap-btn-main-row">
+                <div class="lap-btn-left">
+                  <span class="lap-btn-icon-tag">⚡ LAP</span>
+                  <span class="lap-target-name" id="lap-target-name-${lane.id}">#${activeSwimmer ? activeSwimmer.order : 1} ${targetNameStr}</span>
+                </div>
+                <div class="lap-btn-right">
+                  <span class="lap-next-hint" id="lap-next-hint-${lane.id}">${nextHintStr}</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
           <!-- スイマーカードリスト -->
           <div class="swimmers-list">
             ${swimmersHtml}
@@ -787,7 +810,7 @@ class AquaTimerApp {
   }
 
   /**
-   * スイマーのラップ一覧テーブル (区間Lapと累積Splitのみのシンプル構成)
+   * スイマーのラップ一覧テーブル (本数を#とし、1本中のLAPタイムを改行して表示)
    */
   renderSwimmerLapsTable(swimmer) {
     if (!swimmer.laps || swimmer.laps.length === 0) {
@@ -799,25 +822,66 @@ class AquaTimerApp {
       if (l.lapTime < minLapTime) minLapTime = l.lapTime;
     });
 
-    const rows = swimmer.laps.slice().reverse().map(lap => {
-      const isBest = swimmer.laps.length > 1 && lap.lapTime === minLapTime;
-      const cycleInfo = lap.cycleNumber ? `<span style="font-size:0.6rem; color:var(--accent-amber); margin-left:2px;">[${lap.cycleNumber}本目]</span>` : '';
+    // 本数（cycleNumber）ごとにグループ化
+    const cycleMap = new Map();
+    swimmer.laps.forEach(lap => {
+      const cNum = lap.cycleNumber || 1;
+      if (!cycleMap.has(cNum)) {
+        cycleMap.set(cNum, []);
+      }
+      cycleMap.get(cNum).push(lap);
+    });
+
+    // 本数を新しい順（降順）に並べる
+    const cycleNumbers = Array.from(cycleMap.keys()).sort((a, b) => b - a);
+
+    const rows = cycleNumbers.map(cycleNum => {
+      const lapsInCycle = cycleMap.get(cycleNum); // この本数内のLAPリスト (時系列順)
+      const finalLap = lapsInCycle[lapsInCycle.length - 1];
+      const finalTimeStr = TimerEngine.formatTime(finalLap.splitTime);
+
+      const lapLinesHtml = lapsInCycle.map((l, idx) => {
+        const isBest = swimmer.laps.length > 1 && l.lapTime === minLapTime;
+        const lapLabel = lapsInCycle.length > 1 ? `L${idx + 1}` : 'LAP';
+        const bestBadge = isBest ? '<span class="lap-crown-icon" title="最速ラップ">👑</span>' : '';
+        const lapTimeFormatted = TimerEngine.formatTime(l.lapTime);
+        const splitTimeFormatted = TimerEngine.formatTime(l.splitTime);
+
+        return `
+          <div class="lap-item-line ${isBest ? 'is-best-lap' : ''}">
+            <span class="lap-item-num">${lapLabel}:</span>
+            <strong class="lap-item-time">${lapTimeFormatted}</strong>
+            <span class="lap-item-split">(累 ${splitTimeFormatted})</span>
+            ${bestBadge}
+          </div>
+        `;
+      }).join('');
+
       return `
-        <tr class="${isBest ? 'best-lap' : ''}">
-          <td>#${lap.lapNumber}${cycleInfo} ${isBest ? '👑' : ''}</td>
-          <td>${TimerEngine.formatTime(lap.lapTime)}</td>
-          <td>${TimerEngine.formatTime(lap.splitTime)}</td>
+        <tr class="cycle-row">
+          <td class="cycle-num-cell">
+            <span class="cycle-num-badge">#${cycleNum}</span>
+          </td>
+          <td class="cycle-laps-cell">
+            <div class="cycle-laps-list">
+              ${lapLinesHtml}
+            </div>
+          </td>
+          <td class="cycle-final-cell">
+            <span class="cycle-final-label">Goal</span>
+            <strong class="cycle-final-time">${finalTimeStr}</strong>
+          </td>
         </tr>
       `;
     }).join('');
 
     return `
-      <table class="laps-table" style="font-size:0.72rem;">
+      <table class="laps-cycle-table">
         <thead>
           <tr>
-            <th>No.</th>
-            <th>区間 (Lap)</th>
-            <th>累積 (Split)</th>
+            <th style="width:36px; text-align:center;">本数</th>
+            <th>1本中のLAPタイム (区間 / 累積)</th>
+            <th style="width:52px; text-align:right;">Goal</th>
           </tr>
         </thead>
         <tbody>
@@ -843,21 +907,41 @@ class AquaTimerApp {
       const laneId = btn.dataset.laneId;
       const swimmerId = btn.dataset.swimmerId;
 
-      if (action === 'swimmer-lap') {
+      if (action === 'lane-quick-lap') {
+        // ★ レーンLAPボタン: 対象泳者のラップを打刻し、自動で次泳者へ切り替え
+        const result = this.laneManager.recordLaneNextLap(laneId);
+        if (result) {
+          this.sound.playLap();
+          // 打刻した選手のカード表示を高速更新
+          this.updateSwimmerLapCardUi(laneId, result.swimmer.id);
+          // レーンLAPボタンの対象表示を次泳者に更新
+          this.updateLaneQuickLapBtnUi(laneId);
+          // 対象泳者のハイライト枠線を更新
+          this.updateActiveSwimmerHighlight(laneId);
+          this.showToast(`${result.lane.name}: ${result.swimmer.name} のラップを記録しました`, 1000);
+        }
+      } else if (action === 'select-active-swimmer') {
+        // スイマーカードタップで対象泳者を手動選択
+        const swimmer = this.laneManager.setActiveSwimmer(laneId, swimmerId);
+        if (swimmer) {
+          this.updateLaneQuickLapBtnUi(laneId);
+          this.updateActiveSwimmerHighlight(laneId);
+        }
+      } else if (action === 'swimmer-lap') {
         const lap = this.laneManager.recordSwimmerLap(laneId, swimmerId);
         if (lap) {
           this.sound.playLap();
-          // 該当スイマーのカード表示を高速部分更新
           this.updateSwimmerLapCardUi(laneId, swimmerId);
         }
-      } else if (action === 'swimmer-stop') {
-        this.laneManager.stopSwimmer(laneId, swimmerId);
-        this.sound.playStop();
-        this.renderLanes();
-      } else if (action === 'swimmer-resume') {
-        this.laneManager.resumeSwimmer(laneId, swimmerId);
-        this.sound.playStart();
-        this.renderLanes();
+      } else if (action === 'swimmer-skip') {
+        // ★ スキップ: 指定されたスイマーのLAPを取らずに次の泳者にターゲットを進める
+        const res = this.laneManager.skipSwimmer(laneId, swimmerId);
+        if (res) {
+          this.sound.playCountdownTick();
+          this.updateLaneQuickLapBtnUi(laneId);
+          this.updateActiveSwimmerHighlight(laneId);
+          this.showToast(`${res.skippedSwimmer.name} をスキップ（次 ▶ ${res.nextSwimmer.name}）`, 1000);
+        }
       } else if (action === 'toggle-swimmer-accordion') {
         this.laneManager.toggleSwimmerAccordion(laneId, swimmerId);
         this.renderLanes();
@@ -875,6 +959,49 @@ class AquaTimerApp {
   }
 
   /**
+   * レーンLAPボタンの表示（対象泳者名・次泳者ヒント）を高速更新
+   */
+  updateLaneQuickLapBtnUi(laneId) {
+    const lane = this.laneManager.lanes.find(l => l.id === laneId);
+    if (!lane) return;
+
+    const activeSwimmer = this.laneManager.getActiveSwimmer(laneId);
+    const nextSwimmer = this.laneManager.getNextSwimmer(laneId);
+
+    const nameElem = document.getElementById(`lap-target-name-${laneId}`);
+    const nextElem = document.getElementById(`lap-next-hint-${laneId}`);
+
+    if (nameElem) {
+      nameElem.textContent = activeSwimmer ? `#${activeSwimmer.order} ${activeSwimmer.name}` : '選手なし';
+    }
+    if (nextElem) {
+      nextElem.textContent = nextSwimmer 
+        ? `次 ▶ #${nextSwimmer.order} ${nextSwimmer.name}`
+        : (lane.swimmers.length === 1 ? '1名のみ' : '選手未登録');
+    }
+  }
+
+  /**
+   * レーン内のアクティブ泳者ハイライト枠線を高速切り替え
+   */
+  updateActiveSwimmerHighlight(laneId) {
+    const lane = this.laneManager.lanes.find(l => l.id === laneId);
+    if (!lane) return;
+
+    const activeSwimmer = this.laneManager.getActiveSwimmer(laneId);
+
+    lane.swimmers.forEach(s => {
+      const card = document.getElementById(`swimmer-card-${s.id}`);
+      if (!card) return;
+      if (activeSwimmer && s.id === activeSwimmer.id) {
+        card.classList.add('is-active-target');
+      } else {
+        card.classList.remove('is-active-target');
+      }
+    });
+  }
+
+  /**
    * LAP打刻時のスイマーカード部分更新（DOM全再構築を避けて超高速レスポンス）
    */
   updateSwimmerLapCardUi(laneId, swimmerId) {
@@ -886,13 +1013,16 @@ class AquaTimerApp {
     const lapsCount = swimmer.laps.length;
     const latestLap = lapsCount > 0 ? swimmer.laps[lapsCount - 1] : null;
     const latestLapStr = latestLap ? TimerEngine.formatTime(latestLap.lapTime) : '--:--.--';
+    const cycleNum = latestLap ? (latestLap.cycleNumber || 1) : 1;
+    const cycleLapNum = latestLap ? (latestLap.cycleLapNumber || 1) : 1;
+    const lapLabelStr = latestLap ? `#${cycleNum} [L${cycleLapNum}]` : `Lap 0`;
 
     // 最新LAP表示を更新
     const lapBox = document.getElementById(`swimmer-lap-box-${swimmer.id}`);
     if (lapBox) {
       const label = lapBox.querySelector('.swimmer-lap-label');
       const val = lapBox.querySelector('.swimmer-lap-val');
-      if (label) label.textContent = `Lap ${lapsCount}`;
+      if (label) label.textContent = lapLabelStr;
       if (val) val.textContent = latestLapStr;
     }
 
